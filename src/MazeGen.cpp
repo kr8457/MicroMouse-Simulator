@@ -11,3 +11,5 @@ std::string MazeGen::generate(size_t rows, size_t columns) {
   }
   return maze;
 }
+
+size_t MazeGen::exampleFunc() { return 42; }
