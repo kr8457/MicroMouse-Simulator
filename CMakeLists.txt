@@ -26,15 +26,13 @@ if(BUILD_TESTING)
     # Makes the googletest targets (GTest::gtest, GTest::gtest_main, etc.) available 
     # for linking in subsequent targets (like mms-test).
     FetchContent_MakeAvailable(googletest)
+
+    # Include the CTest module for test registration and management.
+    include(CTest)
+
+    # Add the 'tests' subdirectory, which contains its own CMakeLists.txt file.
+    add_subdirectory(tests)
 endif()
-
-# --- Project Structure and Dependencies ---
-
-# Include the CTest module for test registration and management.
-include(CTest)
-
-# Add the 'tests' subdirectory, which contains its own CMakeLists.txt file.
-add_subdirectory(tests)
 
 # --- Core Logic Library Definition ---
 
