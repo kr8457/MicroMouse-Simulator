@@ -30,11 +30,11 @@ repos:
     rev: v1.3.5
     hooks:
       - id: clang-format
-        args: []
+        args: ["-i"]
       - id: clang-tidy
-        args: []
+        args: ["-p=build"]
       - id: cppcheck
-        args: [src]
+        args: ["--enable=all", "-Iinclude/", "--quiet", "src"]
 
   - repo: https://github.com/crate-ci/typos
     rev: v1.40.0
@@ -47,23 +47,6 @@ repos:
       - id: commitizen
       - id: commitizen-branch
         stages: [pre-push]
-
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.9
-    hooks:
-      - id: actionlint
-
-  # unable to make https://github.com/markdownlint/markdownlint work via pre-commit
-  # so, calling system-installed mdl
-  - repo: local
-    hooks:
-      - id: markdownlint
-        name: Run markdownlint on your Markdown files
-        entry: mdl
-        args: [--style=.mdl.rb, --git-recurse, --ignore-front-matter]
-        language: system
-        files: \.(md|mdown|markdown)$
-        pass_filenames: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

@@ -1,14 +1,15 @@
 # Specifies the minimum version of CMake required to process this file.
 # Using a range (3.50..4.0) ensures compatibility with modern features.
-cmake_minimum_required(VERSION 3.16..4.2)
+cmake_minimum_required(VERSION 3.50..4.2)
 
 # Defines the project name and enables the C++ compiler.
 project(MicroMouse-Simulator LANGUAGES CXX)
 
 # Sets the C++ standard for the entire project to C++17.
 # This ensures consistency across all source files and compilers.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 11)
+
+set(CXX_EXPORT_BUILD_COMMANDS ON)
 
 # --- GoogleTest Integration (Conditional) ---
 
