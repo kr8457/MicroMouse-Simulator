@@ -7,7 +7,7 @@ project(MicroMouse-Simulator LANGUAGES CXX)
 
 # Sets the C++ standard for the entire project to C++17.
 # This ensures consistency across all source files and compilers.
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CXX_EXPORT_BUILD_COMMANDS ON)
 
@@ -38,7 +38,7 @@ endif()
 # --- Core Logic Library Definition ---
 
 # Define the source files that contain the reusable application logic.
-set(CORE_SOURCES src/MazeGen.cpp)
+set(CORE_SOURCES src/MazeGen.cpp )
 
 # Create a Static Library target. This bundles the core logic into a reusable 
 # library that can be linked by both the main executable and the test executable.
