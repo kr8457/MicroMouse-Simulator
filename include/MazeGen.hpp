@@ -1,15 +1,83 @@
-#pragma once
+#ifndef MICRO_MOUSE_MAZE_GEN_HPP
+#define MICRO_MOUSE_MAZE_GEN_HPP
+
+#include <cstddef>
+#include <random>
+#include <stack>
 #include <string>
+#include <utility>
+#include <vector>
 
-constexpr unsigned __int64 EXAMPLE_RESULT = 42;
+/**
+ * @brief Represents a single cell in the maze grid.
+ *        Stores wall states and visited status.
+ */
+struct Cell {
+    bool top     = true;
+    bool right   = true;
+    bool bottom  = true;
+    bool left    = true;
+    bool visited = false;
+};
 
+/**
+ * @class MazeGen
+ * @brief Implements the Recursive Backtracker algorithm for perfect maze
+ * generation. Supports both instant generation and step-by-step execution for
+ * visualization.
+ */
 class MazeGen {
   public:
-    // Generate an ASCII maze with the recursive backtracker algorithm.
-    // The returned string contains multiple lines; each cell is rendered
-    // using "+---+" for walls and "|   |" for vertical walls. The
-    // entrance is at the top-left (opening on the top) and the exit is
-    // at the bottom-right (opening on the bottom).
-    static std::string generate(size_t rows, size_t columns);
-    static unsigned __int64 example_func();
+    MazeGen() = default;
+
+    /**
+     * @brief Initializes the maze generator state.
+     * @param rows Number of rows in the maze.
+     * @param columns Number of columns in the maze.
+     */
+    void initialize(size_t rows, size_t columns);
+
+    /**
+     * @brief Performs a single step of the maze generation algorithm.
+     * @return True if the generation is still in progress, False if completed.
+     */
+    auto step() -> bool;
+
+    /**
+     * @brief Checks if the maze generation is finished.
+     * @return True if finished, False otherwise.
+     */
+    auto is_done() const -> bool;
+
+    /**
+     * @brief Gets the constant reference to the current grid state.
+     * @return Reference to the vector of Cells.
+     */
+    auto get_grid() const -> const std::vector<Cell> & { return grid_; }
+
+    /**
+     * @brief Static helper to generate a full maze instantly.
+     */
+    static auto generate(size_t rows, size_t columns) -> std::vector<Cell>;
+
+    static auto render_ascii(const std::vector<Cell> &grid, size_t rows,
+                             size_t columns) -> std::string;
+    static auto example_func() -> unsigned __int64;
+
+  private:
+    size_t                          rows_ = 0;
+    size_t                          cols_ = 0;
+    std::vector<Cell>               grid_;
+    std::stack<std::pair<int, int>> stack_;
+    bool                            initialized_ = false;
+    bool                            done_        = true;
+    std::mt19937                    rng_;
+
+    // Helper to collect unvisited neighbors (internal use)
+    auto get_neighbors(int row, int col) const
+        -> std::vector<std::pair<int, int>>;
+    // Helper to remove walls (internal use)
+    void remove_walls(int row, int col, int nrow, int ncol);
 };
+
+#endif  // MICRO_MOUSE_MAZE_GEN_HPP
