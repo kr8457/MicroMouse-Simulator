@@ -26,6 +26,7 @@ Before building, ensure you have:
 - **C++ Compiler** (GCC, Clang, MSVC, or MinGW)
 - **Git** (for cloning the repository)
 - **Build System** (Make, Ninja, or MSBuild)
+- **Python 3** with **Sphinx**, **Breathe**, and **Doxygen** (for documentation)
 
 ---
 
@@ -169,6 +170,22 @@ ctest --test-dir build -R TrivialEquality --output-on-failure
 # Run tests verbosely
 ctest --test-dir build -V
 ```
+
+## Documentation
+
+The project uses **Doxygen** for API documentation and **Sphinx** for a structured, theme-based user guide.
+
+### Building Documentation
+
+1.  **Build Sphinx Docs**:
+    ```bash
+    cd sphinx_docs
+    # Ensure dependencies: pip install sphinx breathe sphinx-rtd-theme
+    doxygen Doxyfile
+    make html
+    ```
+
+The generated documentation will be available in `sphinx_docs/_build/html/index.html`.
 
 ---
 

@@ -1,81 +1,105 @@
-#include "MazeSolver.hpp"
+/**
+ * @file MazeSolver.cpp
+ * @brief Implementation of BFS, DFS, A*, Flood Fill, and Wall Follower
+ * algorithms.
+ */
 
+#include "MazeSolver.hpp"
 #include <algorithm>
-#include <iostream>
+#include <cmath>
+#include <functional>
 #include <queue>
 #include <stack>
+#include <utility>
 #include <vector>
 
-size_t MazeSolver::get_1d_index(size_t row, size_t col, size_t columns) {
-    return row * columns + col;
+/**
+ * @brief Converts 2D grid coordinates to a 1D index for linear layout.
+ */
+auto MazeSolver::get_1d_index(size_t row, size_t col, size_t columns)
+    -> size_t {
+    return (row * columns) + col;
 }
 
-std::pair<size_t, size_t> MazeSolver::get_2d_coords(size_t node_idx,
-                                                    size_t columns) {
+/**
+ * @brief Converts a 1D index back to 2D grid coordinates.
+ */
+auto MazeSolver::get_2d_coords(size_t node_idx, size_t columns)
+    -> std::pair<size_t, size_t> {
     return {node_idx / columns, node_idx % columns};
 }
 
-Graph MazeSolver::convert_to_graph(const std::vector<Cell> &grid, size_t rows,
-                                   size_t columns) {
+/**
+ * @brief Transforms the Cell grid into a Graph adjacency list.
+ */
+auto MazeSolver::convert_to_graph(const std::vector<Cell> &grid, size_t rows,
+                                  size_t columns) -> Graph {
     Graph graph(rows * columns);
 
-    for (size_t r = 0; r < rows; ++r) {
-        for (size_t c = 0; c < columns; ++c) {
-            size_t      u_idx = get_1d_index(r, c, columns);
-            const auto &cell  = grid[u_idx];
+    for (size_t row_idx = 0; row_idx < rows; ++row_idx) {
+        for (size_t col_idx = 0; col_idx < columns; ++col_idx) {
+            const size_t U_IDX = get_1d_index(row_idx, col_idx, columns);
+            const auto  &cell  = grid[U_IDX];
 
-            // Check neighbors.
-            if (!cell.top && r > 0) {
-                size_t v_idx = get_1d_index(r - 1, c, columns);
-                graph[u_idx].push_back(v_idx);
+            // Add edges if no wall exists between cells.
+            if (!cell.top && row_idx > 0) {
+                const size_t V_IDX =
+                    get_1d_index(row_idx - 1, col_idx, columns);
+                graph[U_IDX].push_back(V_IDX);
             }
-            if (!cell.bottom && r < rows - 1) {
-                size_t v_idx = get_1d_index(r + 1, c, columns);
-                graph[u_idx].push_back(v_idx);
+            if (!cell.bottom && row_idx < rows - 1) {
+                const size_t V_IDX =
+                    get_1d_index(row_idx + 1, col_idx, columns);
+                graph[U_IDX].push_back(V_IDX);
             }
-            if (!cell.left && c > 0) {
-                size_t v_idx = get_1d_index(r, c - 1, columns);
-                graph[u_idx].push_back(v_idx);
+            if (!cell.left && col_idx > 0) {
+                const size_t V_IDX =
+                    get_1d_index(row_idx, col_idx - 1, columns);
+                graph[U_IDX].push_back(V_IDX);
             }
-            if (!cell.right && c < columns - 1) {
-                size_t v_idx = get_1d_index(r, c + 1, columns);
-                graph[u_idx].push_back(v_idx);
+            if (!cell.right && col_idx < columns - 1) {
+                const size_t V_IDX =
+                    get_1d_index(row_idx, col_idx + 1, columns);
+                graph[U_IDX].push_back(V_IDX);
             }
         }
     }
     return graph;
 }
 
-std::vector<size_t> MazeSolver::bfs_solve(const Graph &graph,
-                                          size_t       start_node_idx,
-                                          size_t       end_node_idx,
-                                          size_t       total_nodes) {
+/**
+ * @brief Finds the shortest path in an unweighted graph using Breadth-First
+ * Search.
+ */
+auto MazeSolver::bfs_solve(const Graph &graph, size_t start_node_idx,
+                           size_t end_node_idx, size_t total_nodes)
+    -> std::vector<size_t> {
     if (start_node_idx == end_node_idx) {
         return {start_node_idx};
     }
 
-    std::queue<size_t>  q;
+    std::queue<size_t>  work_queue;
     std::vector<bool>   visited(total_nodes, false);
     std::vector<size_t> predecessors(total_nodes, static_cast<size_t>(-1));
 
     visited[start_node_idx] = true;
-    q.push(start_node_idx);
+    work_queue.push(start_node_idx);
 
     bool found = false;
-    while (!q.empty()) {
-        size_t u = q.front();
-        q.pop();
+    while (!work_queue.empty()) {
+        const size_t U_NODE = work_queue.front();
+        work_queue.pop();
 
-        if (u == end_node_idx) {
+        if (U_NODE == end_node_idx) {
             found = true;
             break;
         }
 
-        for (size_t v : graph[u]) {
-            if (!visited[v]) {
-                visited[v]      = true;
-                predecessors[v] = u;
-                q.push(v);
+        for (const size_t V_NODE : graph[U_NODE]) {
+            if (!visited[V_NODE]) {
+                visited[V_NODE]      = true;
+                predecessors[V_NODE] = U_NODE;
+                work_queue.push(V_NODE);
             }
         }
     }
@@ -84,7 +108,7 @@ std::vector<size_t> MazeSolver::bfs_solve(const Graph &graph,
         return {};
     }
 
-    // Reconstruct path
+    // Backtrack from end to start to reconstruct path
     std::vector<size_t> path;
     for (size_t curr = end_node_idx; curr != static_cast<size_t>(-1);
          curr        = predecessors[curr]) {
@@ -94,10 +118,13 @@ std::vector<size_t> MazeSolver::bfs_solve(const Graph &graph,
     return path;
 }
 
-std::vector<size_t> MazeSolver::dfs_solve(const Graph &graph,
-                                          size_t       start_node_idx,
-                                          size_t       end_node_idx,
-                                          size_t       total_nodes) {
+/**
+ * @brief Finds a path using Depth-First Search. Note: Not necessarily the
+ * shortest.
+ */
+auto MazeSolver::dfs_solve(const Graph &graph, size_t start_node_idx,
+                           size_t end_node_idx, size_t total_nodes)
+    -> std::vector<size_t> {
     if (start_node_idx == end_node_idx) {
         return {start_node_idx};
     }
@@ -110,132 +137,219 @@ std::vector<size_t> MazeSolver::dfs_solve(const Graph &graph,
     visited[start_node_idx] = true;
 
     while (!dfs_stack.empty()) {
-        size_t current_node = dfs_stack.top();
+        const size_t CURRENT_NODE = dfs_stack.top();
 
-        if (current_node == end_node_idx) {
-            break;  // Destination found
+        if (CURRENT_NODE == end_node_idx) {
+            break;  // Destination reached
         }
 
-        // Use std::find_if to satisfy cppcheck? No, simple loop is better for
-        // logic here. We need to keep this loop to find the *first* unvisited
-        // neighbor. cppcheck-suppress useStlAlgorithm
         bool found_unvisited_neighbor = false;
-
-        for (size_t neighbor : graph[current_node]) {
-            if (!visited[neighbor]) {
-                visited[neighbor]      = true;
-                predecessors[neighbor] = current_node;
-                dfs_stack.push(neighbor);
+        for (const size_t NEIGHBOR : graph[CURRENT_NODE]) {
+            if (!visited[NEIGHBOR]) {
+                visited[NEIGHBOR]      = true;
+                predecessors[NEIGHBOR] = CURRENT_NODE;
+                dfs_stack.push(NEIGHBOR);
                 found_unvisited_neighbor = true;
-                break;
+                break;  // Explore immediately
             }
         }
 
         if (!found_unvisited_neighbor) {
-            dfs_stack.pop();  // Backtrack
+            dfs_stack.pop();  // Backtrack if no unvisited options
         }
     }
 
-    // Reconstruct path
-    std::vector<size_t> path;
     if (predecessors[end_node_idx] == static_cast<size_t>(-1)) {
-        return {};  // No path found
+        return {};
     }
 
-    size_t current_path_node = end_node_idx;
+    std::vector<size_t> path;
+    size_t              current_path_node = end_node_idx;
     while (current_path_node != static_cast<size_t>(-1)) {
         path.push_back(current_path_node);
-        if (predecessors[current_path_node] == current_path_node) break;
+        if (predecessors[current_path_node] == current_path_node) {
+            break;
+        }
         current_path_node = predecessors[current_path_node];
     }
     std::reverse(path.begin(), path.end());
     return path;
 }
 
-std::vector<size_t>
-MazeSolver::wall_follower_solve(const std::vector<Cell> &grid, size_t rows,
-                                size_t cols, size_t start_node_idx,
-                                size_t end_node_idx) {
+/**
+ * @brief Implements the Left-Hand rule (Wall Follower) algorithm.
+ */
+auto MazeSolver::wall_follower_solve(const std::vector<Cell> &grid, size_t rows,
+                                     size_t columns, size_t start_node_idx,
+                                     size_t end_node_idx)
+    -> std::vector<size_t> {
+
+    std::vector<size_t> path;
+    size_t              curr   = start_node_idx;
+    int                 facing = 1;  // 0: Up, 1: Right, 2: Down, 3: Left
+
+    path.push_back(curr);
+
+    static constexpr size_t K_MAX_ROTATIONS = 4;
+    const size_t            MAX_STEPS =
+        rows * columns * K_MAX_ROTATIONS;  // Prevent infinite loops
+    size_t steps = 0;
+
+    while (curr != end_node_idx && steps < MAX_STEPS) {
+        auto [r, c]      = get_2d_coords(curr, columns);
+        const auto &cell = grid[curr];
+
+        // Left-hand rule logic
+        // Check and turn: Priority 1: Left, Priority 2: Front, Priority 3:
+        // Right, Priority 4: Back
+        bool moved = false;
+        for (int i = -1; i <= 2; ++i) {
+            int  check_dir = (facing + i + K_MAX_ROTATIONS) % 4;
+            bool wall      = true;
+            if (check_dir == 0) {
+                wall = cell.top;
+            } else if (check_dir == 1) {
+                wall = cell.right;
+            } else if (check_dir == 2) {
+                wall = cell.bottom;
+            } else if (check_dir == 3) {
+                wall = cell.left;
+            }
+
+            if (!wall) {
+                facing = check_dir;
+                if (facing == 0) {
+                    r--;
+                } else if (facing == 1) {
+                    c++;
+                } else if (facing == 2) {
+                    r++;
+                } else if (facing == 3) {
+                    c--;
+                }
+
+                curr = get_1d_index(r, c, columns);
+                path.push_back(curr);
+                moved = true;
+                break;
+            }
+        }
+
+        if (!moved) {
+            break;
+        }
+        steps++;
+    }
+
+    return path;
+}
+
+/**
+ * @brief Finds the shortest path using A* search with Manhattan distance
+ * heuristic.
+ */
+auto MazeSolver::astar_solve(const Graph &graph, size_t start_node_idx,
+                             size_t end_node_idx, size_t total_nodes,
+                             size_t columns) -> std::vector<size_t> {
+
+    auto heuristic = [&](size_t node_idx) -> double {
+        auto [r1, c1] = get_2d_coords(node_idx, columns);
+        auto [r2, c2] = get_2d_coords(end_node_idx, columns);
+        return static_cast<double>(
+            std::abs(static_cast<int>(r1) - static_cast<int>(r2)) +
+            std::abs(static_cast<int>(c1) - static_cast<int>(c2)));
+    };
+
+    using NodeDist = std::pair<double, size_t>;
+    std::priority_queue<NodeDist, std::vector<NodeDist>, std::greater<>>
+        priority_q;
+
+    std::vector<double> g_score(total_nodes,
+                                std::numeric_limits<double>::infinity());
+    std::vector<size_t> predecessors(total_nodes, static_cast<size_t>(-1));
+
+    g_score[start_node_idx] = 0;
+    priority_q.emplace(heuristic(start_node_idx), start_node_idx);
+
+    while (!priority_q.empty()) {
+        const size_t U_NODE = priority_q.top().second;
+        priority_q.pop();
+
+        if (U_NODE == end_node_idx) {
+            break;
+        }
+
+        for (const size_t V_NODE : graph[U_NODE]) {
+            const double TENTATIVE_G = g_score[U_NODE] + 1.0;
+            if (TENTATIVE_G < g_score[V_NODE]) {
+                predecessors[V_NODE] = U_NODE;
+                g_score[V_NODE]      = TENTATIVE_G;
+                priority_q.emplace(TENTATIVE_G + heuristic(V_NODE), V_NODE);
+            }
+        }
+    }
+
+    if (predecessors[end_node_idx] == static_cast<size_t>(-1)) {
+        return {};
+    }
+
+    std::vector<size_t> path;
+    for (size_t curr_node = end_node_idx; curr_node != static_cast<size_t>(-1);
+         curr_node        = predecessors[curr_node]) {
+        path.push_back(curr_node);
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
+/**
+ * @brief Flood Fill algorithm to calculate distances to target and find path.
+ */
+auto MazeSolver::flood_fill_solve(const std::vector<Cell> &grid, size_t rows,
+                                  size_t columns, size_t start_node_idx,
+                                  size_t end_node_idx) -> std::vector<size_t> {
+    const size_t     total_nodes = rows * columns;
+    std::vector<int> distances(total_nodes, static_cast<int>(total_nodes));
+    Graph            graph = convert_to_graph(grid, rows, columns);
+
+    std::queue<size_t> work_queue;
+    distances[end_node_idx] = 0;
+    work_queue.push(end_node_idx);
+
+    while (!work_queue.empty()) {
+        const size_t U_NODE = work_queue.front();
+        work_queue.pop();
+
+        for (const size_t V_NODE : graph[U_NODE]) {
+            if (distances[V_NODE] > distances[U_NODE] + 1) {
+                distances[V_NODE] = distances[U_NODE] + 1;
+                work_queue.push(V_NODE);
+            }
+        }
+    }
+
+    if (distances[start_node_idx] == static_cast<int>(total_nodes)) {
+        return {};
+    }
 
     std::vector<size_t> path;
     size_t              curr = start_node_idx;
     path.push_back(curr);
 
-    Direction facing = Direction::EAST;
-
-    size_t max_steps = rows * cols * 4;
-    size_t steps     = 0;
-
-    while (curr != end_node_idx && steps < max_steps) {
-        auto [r, c]      = get_2d_coords(curr, cols);
-        const auto &cell = grid[curr];
-
-        bool wall_front = false;
-        bool wall_right = false;
-
-        switch (facing) {
-        case Direction::NORTH:
-            wall_front = cell.top;
-            wall_right = cell.right;
-            break;
-        case Direction::EAST:
-            wall_front = cell.right;
-            wall_right = cell.bottom;
-            break;
-        case Direction::SOUTH:
-            wall_front = cell.bottom;
-            wall_right = cell.left;
-            break;
-        case Direction::WEST:
-            wall_front = cell.left;
-            wall_right = cell.top;
-            break;
-        }
-
-        if (!wall_right) {
-            // Turn Right
-            switch (facing) {
-            case Direction::NORTH: facing = Direction::EAST; break;
-            case Direction::EAST: facing = Direction::SOUTH; break;
-            case Direction::SOUTH: facing = Direction::WEST; break;
-            case Direction::WEST: facing = Direction::NORTH; break;
+    while (curr != end_node_idx) {
+        size_t next_v = curr;
+        int    min_d  = distances[curr];
+        for (const size_t V_NODE : graph[curr]) {
+            if (distances[V_NODE] < min_d) {
+                min_d  = distances[V_NODE];
+                next_v = V_NODE;
             }
-        } else if (wall_front) {
-            // Wall on right AND front. Turn Left.
-            switch (facing) {
-            case Direction::NORTH: facing = Direction::WEST; break;
-            case Direction::EAST: facing = Direction::NORTH; break;
-            case Direction::SOUTH: facing = Direction::EAST; break;
-            case Direction::WEST: facing = Direction::SOUTH; break;
-            }
-            steps++;
-            continue;
         }
-
-        // Move
-        int nr = static_cast<int>(r);
-        int nc = static_cast<int>(c);
-
-        switch (facing) {
-        case Direction::NORTH: nr--; break;
-        case Direction::EAST: nc++; break;
-        case Direction::SOUTH: nr++; break;
-        case Direction::WEST: nc--; break;
+        if (next_v == curr) {
+            break;
         }
-
-        if (nr >= 0 &&
-            nr < static_cast<int>(rows) &&
-            nc >= 0 &&
-            nc < static_cast<int>(cols)) {
-            curr = get_1d_index(nr, nc, cols);
-            path.push_back(curr);
-        }
-
-        steps++;
+        curr = next_v;
+        path.push_back(curr);
     }
-
-    if (curr == end_node_idx) {
-        return path;
-    }
-    return {};
+    return path;
 }
