@@ -30,7 +30,9 @@ Before contributing, ensure you have:
 - **C++ Compiler** (GCC, Clang, MSVC, or MinGW) which supports C++11 and above
 - **Clang-Format** (preferably from the LLVM toolchain)
 - **Clang-Tidy** (for static analysis)
-- **Python 3** (for pre-commit hooks)
+- **Python 3** (for pre-commit hooks and Sphinx)
+- **Doxygen** (XML generation backend for Sphinx)
+- **Sphinx** & **Breathe** (for generating the user guide)
 - **VSCode** (recommended IDE)
 
 ### Setting Up Your Development Environment
@@ -232,13 +234,27 @@ bool isWallPresent();
 ```
 
 #### 5. Constants and Macros
-Use **UPPER_SNAKE_CASE** for constants:
+Use **UPPER_SNAKE_CASE** for all constants, including global constants, class constants, and local `static constexpr` values:
 ```cpp
 ✅ Good:
 const int MAX_MAZE_SIZE = 16;
+static constexpr float K_SIDEBAR_WIDTH = 280.0F;
 
 ❌ Bad:
 const int maxMazeSize = 16;
+```
+
+#### 6. Global Variables and State
+Avoid non-const global variables. If global state is necessary, encapsulate it in a `struct` within an anonymous namespace to maintain modularity and satisfy static analysis (`cppcoreguidelines-avoid-non-const-global-variables`):
+
+```cpp
+namespace {
+    struct SimulationState {
+        int maze_rows = 16;
+        bool is_solving = false;
+    };
+    SimulationState G_STATE;
+}
 ```
 
 ---
@@ -374,14 +390,12 @@ ctest --test-dir build --output-on-failure
 ```
 MicroMouse-Simulator/
 ├── CMakeLists.txt          # Main build configuration
-├── include/                 # Header files
-│   └── header files (.hpp)
-├── src/                     # Source files
-│   ├── Main.cpp
-│   └── other .cpp files
-└── tests/                   # Test files
-    ├── CMakeLists.txt       # Test build configuration
-    └── test files (.cpp)
+├── Doxyfile                # Doxygen configuration
+├── include/                # Header files (.hpp)
+├── src/                    # Source files (.cpp)
+├── tests/                  # Test files
+├── sphinx_docs/            # Sphinx documentation source
+└── docs/                   # Generated documentation (XML/HTML)
 ```
 
 ---
@@ -582,6 +596,34 @@ TEST(MazeGenTest, BasicGeneration) {
     EXPECT_TRUE(true);
 }
 ```
+
+## 📚 Documentation Workflow
+
+We use a combination of **Doxygen** and **Sphinx** (via **Breathe**) to maintain documentation.
+
+### 1. In-Code Documentation
+All public classes, methods, and structures must be documented using Doxygen-style comments:
+```cpp
+/**
+ * @brief Brief description.
+ * @param name Description of parameter.
+ * @return Description of return value.
+ */
+```
+
+### 2. Building Documentation Locally
+Before submitting a PR, ensure your changes don't break the documentation build:
+
+```bash
+# Build Sphinx site (automatically handles Doxygen backend)
+cd sphinx_docs
+pip install sphinx breathe sphinx-rtd-theme
+doxygen Doxyfile
+make html
+```
+
+### 3. Reviewing Documentation
+Open `sphinx_docs/_build/html/index.html` in your browser to verify the rendering.
 
 ---
 

@@ -61,7 +61,7 @@ endif()
 # --- Core Logic Library Definition ---
 
 # Define the source files that contain the reusable application logic.
-set(CORE_SOURCES src/MazeGen.cpp src/MazeSolver.cpp)
+set(CORE_SOURCES src/MazeGen.cpp src/MazeSolver.cpp src/UI.cpp)
 
 # Create a Static Library target. This bundles the core logic into a reusable 
 # library that can be linked by both the main executable and the test executable.
@@ -73,6 +73,8 @@ target_include_directories(mms-core
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include 
 )
+target_link_libraries(mms-core PUBLIC sfml-graphics sfml-window sfml-system)
+target_compile_definitions(mms-core PUBLIC SFML_STATIC)
 # The PUBLIC keyword ensures that any target that links to 'mms-core' (like 'mms' 
 # and 'mms-test') automatically inherits this include path.
 
@@ -94,5 +96,9 @@ target_link_libraries(mms PRIVATE mms-core sfml-graphics sfml-window sfml-system
 
 # Define SFML_STATIC to ensure headers use static linkage conventions
 target_compile_definitions(mms PRIVATE SFML_STATIC)
+
+# --- Assets Management ---
+# Copy the assets directory to the build directory so the executable can find them
+file(COPY "${CMAKE_SOURCE_DIR}/assets" DESTINATION "${CMAKE_BINARY_DIR}")
 
 

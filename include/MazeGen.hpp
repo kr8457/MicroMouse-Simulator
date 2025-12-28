@@ -56,22 +56,30 @@ class MazeGen {
     auto get_grid() const -> const std::vector<Cell> & { return grid_; }
 
     /**
+     * @brief Gets the constant reference to the generation path (stack).
+     * @return Reference to the vector of (row, col) pairs representing the
+     * current path.
+     */
+    auto get_path() const -> const std::vector<std::pair<int, int>> & {
+        return path_stack_;
+    }
+
+    /**
      * @brief Static helper to generate a full maze instantly.
      */
     static auto generate(size_t rows, size_t columns) -> std::vector<Cell>;
 
     static auto render_ascii(const std::vector<Cell> &grid, size_t rows,
                              size_t columns) -> std::string;
-    static auto example_func() -> unsigned __int64;
 
   private:
-    size_t                          rows_ = 0;
-    size_t                          cols_ = 0;
-    std::vector<Cell>               grid_;
-    std::stack<std::pair<int, int>> stack_;
-    bool                            initialized_ = false;
-    bool                            done_        = true;
-    std::mt19937                    rng_;
+    size_t                           rows_ = 0;
+    size_t                           cols_ = 0;
+    std::vector<Cell>                grid_;
+    std::vector<std::pair<int, int>> path_stack_;
+    bool                             initialized_ = false;
+    bool                             done_        = true;
+    std::mt19937                     rng_;
 
     // Helper to collect unvisited neighbors (internal use)
     auto get_neighbors(int row, int col) const

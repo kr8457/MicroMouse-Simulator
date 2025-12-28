@@ -14,13 +14,7 @@
 using Graph = std::vector<std::vector<size_t>>;
 
 /**
- * @brief Represents a direction (NORTH, EAST, SOUTH, WEST) for algorithms like
- * Wall Follower.
- */
-enum class Direction : std::uint8_t { NORTH, EAST, SOUTH, WEST };
-
-/**
- * @class MazeSolver
+ * @namespace MazeSolver
  * @brief Provides static methods for converting a maze grid into a graph and
  * solving it using various pathfinding algorithms.
  */
@@ -84,17 +78,41 @@ class MazeSolver {
         -> std::vector<size_t>;
 
     /**
-     * @brief Solves the maze using the Right-Hand Rule (Wall Follower
-     * algorithm). Simulates a mouse following the right wall.
-     * @param grid The 1D vector of Cell objects representing the maze (needed
-     * for wall checks).
+     * @brief Solves the maze using the A* search algorithm.
+     * @param graph The adjacency list representation of the maze.
+     * @param start_node_idx The 1D index of the starting cell.
+     * @param end_node_idx The 1D index of the ending cell.
+     * @param total_nodes The total number of nodes in the graph.
+     * @param columns The number of columns (for heuristic).
+     * @return A vector of 1D node indices representing the shortest path.
+     */
+    static auto astar_solve(const Graph &graph, size_t start_node_idx,
+                            size_t end_node_idx, size_t total_nodes,
+                            size_t columns) -> std::vector<size_t>;
+
+    /**
+     * @brief Solves the maze using the Flood Fill algorithm (distance
+     * transformed BFS).
+     * @param grid The Cell grid representation.
+     * @param rows Total rows.
+     * @param columns Total columns.
+     * @param start_node_idx The 1D index of the starting cell.
+     * @param end_node_idx The 1D index of the ending cell.
+     * @return A vector of 1D node indices representing the path.
+     */
+    static auto flood_fill_solve(const std::vector<Cell> &grid, size_t rows,
+                                 size_t columns, size_t start_node_idx,
+                                 size_t end_node_idx) -> std::vector<size_t>;
+
+    /**
+     * @brief Solves the maze using the Left-Hand Rule (Wall Follower
+     * algorithm).
+     * @param grid The 1D vector of Cell objects representing the maze.
      * @param rows The number of rows in the maze.
      * @param columns The number of columns in the maze.
      * @param start_node_idx The 1D index of the starting cell.
      * @param end_node_idx The 1D index of the ending cell.
-     * @return A vector of 1D node indices representing the path taken by the
-     * wall follower. Returns an empty vector if the path does not reach the
-     * exit (e.g., in a maze with an island).
+     * @return A vector of 1D node indices representing the path taken.
      */
     static auto wall_follower_solve(const std::vector<Cell> &grid, size_t rows,
                                     size_t columns, size_t start_node_idx,

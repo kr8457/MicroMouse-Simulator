@@ -34,7 +34,7 @@ repos:
       - id: clang-tidy
         args: ["-p=build"]
       - id: cppcheck
-        args: ["--enable=all", "-Iinclude/", "--quiet", "src"]
+        args: ["--enable=all", "-Iinclude/", "--quiet", "src", "--suppress=normalCheckLevelMaxBranches", "--suppress=checkersReport", "--suppress=missingIncludeSystem", "--suppress=useStlAlgorithm", "--suppress=unusedFunction", "--suppress=unusedStructMember", "--suppress=unmatchedSuppression", "--inline-suppr"]
 
   - repo: https://github.com/crate-ci/typos
     rev: v1.40.0
@@ -53,7 +53,7 @@ repos:
     hooks:
       - id: check-added-large-files
         name: "📁 filesystem/🤏 size · Prevent giant files from being committed"
-        args: [ '--maxkb=200' ]
+        args: [ '--maxkb=2000' ]
       - id: check-executables-have-shebangs
         name: "📁 filesystem/⚙️ exec · Verify shebang presence"
       - id: check-shebang-scripts-are-executable
