@@ -196,8 +196,12 @@ auto MazeSolver::wall_follower_solve(const std::vector<Cell> &grid, size_t rows,
     size_t steps = 0;
 
     while (curr != end_node_idx && steps < MAX_STEPS) {
-        auto [r, c]      = get_2d_coords(curr, columns);
-        const auto &cell = grid[curr];
+        auto [curr_row, curr_col] = get_2d_coords(curr, columns);
+        const auto &cell          = grid[curr];
+
+        // Convert to signed integers for safe arithmetic
+        int row = static_cast<int>(curr_row);
+        int col = static_cast<int>(curr_col);
 
         // Left-hand rule logic
         // Check and turn: Priority 1: Left, Priority 2: Front, Priority 3:
@@ -218,20 +222,33 @@ auto MazeSolver::wall_follower_solve(const std::vector<Cell> &grid, size_t rows,
 
             if (!wall) {
                 facing = check_dir;
+
+                // Calculate new position using signed integers
+                int new_row = row;
+                int new_col = col;
+
                 if (facing == 0) {
-                    r--;
+                    new_row--;
                 } else if (facing == 1) {
-                    c++;
+                    new_col++;
                 } else if (facing == 2) {
-                    r++;
+                    new_row++;
                 } else if (facing == 3) {
-                    c--;
+                    new_col--;
                 }
 
-                curr = get_1d_index(r, c, columns);
-                path.push_back(curr);
-                moved = true;
-                break;
+                // Bounds checking to prevent out-of-bounds access
+                if (new_row >= 0 &&
+                    new_row < static_cast<int>(rows) &&
+                    new_col >= 0 &&
+                    new_col < static_cast<int>(columns)) {
+
+                    curr = get_1d_index(static_cast<size_t>(new_row),
+                                        static_cast<size_t>(new_col), columns);
+                    path.push_back(curr);
+                    moved = true;
+                    break;
+                }
             }
         }
 

@@ -61,7 +61,7 @@ endif()
 # --- Core Logic Library Definition ---
 
 # Define the source files that contain the reusable application logic.
-set(CORE_SOURCES src/MazeGen.cpp src/MazeSolver.cpp src/UI.cpp)
+set(CORE_SOURCES src/MazeGen.cpp src/MazeSolver.cpp src/UI.cpp src/Simulator.cpp)
 
 # Create a Static Library target. This bundles the core logic into a reusable 
 # library that can be linked by both the main executable and the test executable.
