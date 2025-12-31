@@ -119,6 +119,65 @@ auto MazeSolver::bfs_solve(const Graph &graph, size_t start_node_idx,
 }
 
 /**
+ * @brief BFS that also tracks the exploration order for visualization.
+ */
+auto MazeSolver::bfs_solve_with_exploration(const Graph &graph, 
+                                            size_t start_node_idx,
+                                            size_t end_node_idx, 
+                                            size_t total_nodes,
+                                            std::vector<size_t> &exploration_order)
+    -> std::vector<size_t> {
+    exploration_order.clear();
+    
+    if (start_node_idx == end_node_idx) {
+        exploration_order.push_back(start_node_idx);
+        return {start_node_idx};
+    }
+
+    std::queue<size_t>  work_queue;
+    std::vector<bool>   visited(total_nodes, false);
+    std::vector<size_t> predecessors(total_nodes, static_cast<size_t>(-1));
+
+    visited[start_node_idx] = true;
+    work_queue.push(start_node_idx);
+    exploration_order.push_back(start_node_idx);  // Track exploration
+
+    bool found = false;
+    while (!work_queue.empty()) {
+        const size_t U_NODE = work_queue.front();
+        work_queue.pop();
+
+        if (U_NODE == end_node_idx) {
+            found = true;
+            break;
+        }
+
+        for (const size_t V_NODE : graph[U_NODE]) {
+            if (!visited[V_NODE]) {
+                visited[V_NODE]      = true;
+                predecessors[V_NODE] = U_NODE;
+                work_queue.push(V_NODE);
+                exploration_order.push_back(V_NODE);  // Track each visited node
+            }
+        }
+    }
+
+    if (!found) {
+        return {};
+    }
+
+    // Backtrack from end to start to reconstruct final path
+    std::vector<size_t> path;
+    for (size_t curr = end_node_idx; curr != static_cast<size_t>(-1);
+         curr        = predecessors[curr]) {
+        path.push_back(curr);
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
+
+/**
  * @brief Finds a path using Depth-First Search. Note: Not necessarily the
  * shortest.
  */

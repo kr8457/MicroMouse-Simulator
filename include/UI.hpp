@@ -29,6 +29,7 @@ extern const sf::Color TextMain;      ///< Main text color (White)
 extern const sf::Color TextDim;       ///< Dimmed/secondary text color (Slate)
 extern const sf::Color Success;       ///< Success/indicator color (Emerald)
 extern const sf::Color PathColor;     ///< Color of the solved path ribbon
+extern const sf::Color ExplorationColor; ///< Color of the exploration path
 extern const sf::Color DotColor;      ///< Color of the path head marker
 extern const sf::Color WallColor;     ///< Color of the maze walls
 extern const sf::Color
@@ -54,14 +55,10 @@ struct UILayout {
     sf::FloatRect solve_inst_btn;  ///< Instant Solve button
     sf::FloatRect reset_btn;       ///< Reset Simulator button
 
-    sf::FloatRect row_dec_btn;  ///< Decrease Rows spinner
-    sf::FloatRect row_inc_btn;  ///< Increase Rows spinner
-    sf::FloatRect col_dec_btn;  ///< Decrease Cols spinner
-    sf::FloatRect col_inc_btn;  ///< Increase Cols spinner
-    sf::FloatRect apply_btn;    ///< Apply Dimensions button
-
-    sf::FloatRect speed_dec_btn;  ///< Decrease Animation Speed spinner
-    sf::FloatRect speed_inc_btn;  ///< Increase Animation Speed spinner
+    sf::FloatRect row_input_box; ///< Input box for Rows
+    sf::FloatRect col_input_box; ///< Input box for Columns
+    sf::FloatRect speed_input_box; ///< Input box for Speed
+    sf::FloatRect apply_btn;     ///< Apply Dimensions button
 };
 
 /**
@@ -85,9 +82,11 @@ class UI {
      */
     auto draw(sf::RenderWindow &window, size_t maze_rows, size_t maze_cols,
               size_t display_rows, size_t display_cols,
-              const std::vector<Cell> &grid, const std::vector<size_t> &path,
-              size_t highlight_idx, bool is_generating, bool is_solving,
-              bool is_paused, int solver_type, double last_solve_ms,
+              const std::vector<Cell> &grid, 
+              const std::vector<size_t> &exploration_path,
+              const std::vector<size_t> &solved_path,
+              bool is_generating, bool is_solving,
+              bool is_paused, int solver_type,
               int animation_speed, const MazeGen &maze_gen,
               const sf::Vector2f &mouse_pos) -> void;
 
@@ -108,34 +107,42 @@ class UI {
     /** @brief Gets the current UI layout bounding boxes. */
     auto get_layout() const -> const UILayout & { return layout_; }
 
-    static constexpr float K_SIDEBAR_WIDTH =
-        280.0F;                                  ///< Width of the sidebar panel
-    static constexpr float K_PADDING   = 20.0F;  ///< Standard UI padding
-    static constexpr float K_CELL_SIZE = 22.0F;  ///< Base size for maze cells
-    static constexpr float K_WALL_THICKNESS =
-        1.5F;  ///< Thickness of maze walls
-
   private:
     sf::Font font_;    ///< The font used for all UI text
     UILayout layout_;  ///< Current layout bounds
 
+    std::string row_input_buffer_; ///< Buffer for row dimension text input
+    std::string col_input_buffer_; ///< Buffer for column dimension text input
+    std::string speed_input_buffer_; ///< Buffer for speed text input
+    bool row_focused_ = false;     ///< Whether the row text box is focused
+    bool col_focused_ = false;     ///< Whether the column text box is focused
+    bool speed_focused_ = false;   ///< Whether the speed text box is focused
+
     /** @brief Internal helper to draw the sidebar. */
     auto draw_sidebar(sf::RenderWindow &window, size_t display_rows,
                       size_t display_cols, bool is_generating, bool is_solving,
-                      bool is_paused, int solver_type, double last_solve_ms,
-                      size_t path_size, int animation_speed,
+                      bool is_paused, int solver_type,
+                      size_t exploration_count, size_t solved_count,
+                      int animation_speed,
                       const sf::Vector2f &mouse_pos) -> void;
 
     /** @brief Internal helper to draw the maze and centering logic. */
     auto draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
                    const std::vector<Cell>   &grid,
-                   const std::vector<size_t> &path, size_t highlight_idx,
-                   bool is_generating, const MazeGen &maze_gen) -> void;
+                   const std::vector<size_t> &exploration_path,
+                   const std::vector<size_t> &solved_path,
+                   bool is_generating,
+                   const MazeGen &maze_gen) -> void;
 
     /** @brief Internal helper to draw an interactive button. */
     auto draw_btn(sf::RenderWindow &window, const std::string &label,
                   sf::FloatRect &bounds, float x, float y, float width,
                   bool active, const sf::Vector2f &mouse_pos) -> void;
+
+    /** @brief Internal helper to draw a text input box. */
+    auto draw_input_box(sf::RenderWindow &window, const std::string &label,
+                        const std::string &value, sf::FloatRect &bounds,
+                        float x, float y, float width, bool focused) -> void;
 };
 
 #endif  // MICRO_MOUSE_UI_HPP

@@ -13,6 +13,8 @@
 // Application constants
 static constexpr int K_WINDOW_WIDTH  = 1280;
 static constexpr int K_WINDOW_HEIGHT = 720;
+static constexpr int K_MIN_WINDOW_WIDTH  = 800;
+static constexpr int K_MIN_WINDOW_HEIGHT = 600;
 
 /**
  * @brief Application entry point.
@@ -21,7 +23,7 @@ static constexpr int K_WINDOW_HEIGHT = 720;
 auto main() -> int {
     sf::RenderWindow window(sf::VideoMode(K_WINDOW_WIDTH, K_WINDOW_HEIGHT),
                             "MicroMouse Simulator Pro",
-                            sf::Style::Titlebar | sf::Style::Close);
+                            sf::Style::Default);
     window.setFramerateLimit(60);
 
     try {
@@ -37,6 +39,23 @@ auto main() -> int {
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed) {
                     window.close();
+                }
+                if (event.type == sf::Event::Resized) {
+                    // Enforce minimum window size
+                    unsigned int width = event.size.width;
+                    unsigned int height = event.size.height;
+                    
+                    if (width < K_MIN_WINDOW_WIDTH || height < K_MIN_WINDOW_HEIGHT) {
+                        width = std::max(width, static_cast<unsigned int>(K_MIN_WINDOW_WIDTH));
+                        height = std::max(height, static_cast<unsigned int>(K_MIN_WINDOW_HEIGHT));
+                        window.setSize(sf::Vector2u(width, height));
+                    }
+                    
+                    // Update the view to match the new window size
+                    sf::FloatRect visibleArea(0.f, 0.f, 
+                                             static_cast<float>(width), 
+                                             static_cast<float>(height));
+                    window.setView(sf::View(visibleArea));
                 }
                 simulator.handle_event(window, event);
             }
@@ -58,6 +77,4 @@ auto main() -> int {
         std::cerr << "UNKNOWN EXCEPTION CAUGHT\n";
         return 1;
     }
-
-    return 0;
 }

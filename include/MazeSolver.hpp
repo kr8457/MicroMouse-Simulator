@@ -11,6 +11,7 @@
 // Define a type for our graph representation (adjacency list)
 // Each element in the outer vector corresponds to a node (cell index),
 // and the inner vector contains the 1D indices of its direct neighbors.
+
 using Graph = std::vector<std::vector<size_t>>;
 
 /**
@@ -27,7 +28,7 @@ class MazeSolver {
      * @param columns The total number of columns in the grid.
      * @return The 1D index corresponding to the given 2D coordinates.
      */
-    static auto get_1d_index(size_t row, size_t col, size_t columns) -> size_t;
+    static auto get_1d_index(size_t row, size_t col, size_t columns) -> size_t; // ? no need for this to be here (not the MazeSolver's responsibility)
 
     /**
      * @brief Converts a 1D node index back to 2D (row, col) coordinates.
@@ -61,6 +62,23 @@ class MazeSolver {
      */
     static auto bfs_solve(const Graph &graph, size_t start_node_idx,
                           size_t end_node_idx, size_t total_nodes)
+        -> std::vector<size_t>;
+
+    /**
+     * @brief Solves the maze using BFS and also returns the exploration order.
+     *        This shows all nodes visited during the search process.
+     * @param graph The adjacency list representation of the maze.
+     * @param start_node_idx The 1D index of the starting cell.
+     * @param end_node_idx The 1D index of the ending cell.
+     * @param total_nodes The total number of nodes (cells) in the graph.
+     * @param exploration_order Output parameter - filled with nodes in visit order.
+     * @return A vector of 1D node indices representing the shortest path.
+     */
+    static auto bfs_solve_with_exploration(const Graph &graph, 
+                                           size_t start_node_idx,
+                                           size_t end_node_idx, 
+                                           size_t total_nodes,
+                                           std::vector<size_t> &exploration_order)
         -> std::vector<size_t>;
 
     /**
