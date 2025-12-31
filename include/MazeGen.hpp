@@ -28,7 +28,7 @@ struct Cell {
  */
 class MazeGen {
   public:
-    MazeGen() = default;
+    MazeGen() = default; // ? is this needed?
 
     /**
      * @brief Initializes the maze generator state.
@@ -47,7 +47,7 @@ class MazeGen {
      * @brief Checks if the maze generation is finished.
      * @return True if finished, False otherwise.
      */
-    auto is_done() const -> bool;
+    auto is_done() const -> bool; // ? why is it needed when step() returns false when maze is completed
 
     /**
      * @brief Gets the constant reference to the current grid state.
@@ -70,7 +70,7 @@ class MazeGen {
     static auto generate(size_t rows, size_t columns) -> std::vector<Cell>;
 
     static auto render_ascii(const std::vector<Cell> &grid, size_t rows,
-                             size_t columns) -> std::string;
+                             size_t columns) -> std::string; // ? why is rows and columns needed when vector.size exists?
 
   private:
     size_t                           rows_ = 0;

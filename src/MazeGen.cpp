@@ -22,7 +22,7 @@ auto MazeGen::initialize(size_t rows, size_t columns) -> void {
     grid_.resize(rows * columns);
 
     // Reset cells
-    std::fill(grid_.begin(), grid_.end(), Cell());
+    std::fill(grid_.begin(), grid_.end(), Cell()); // ? why not just reset the cells rather than the whole vector. What are the tradeoffs?
 
     // Reset path stack
     path_stack_.clear();
@@ -30,7 +30,7 @@ auto MazeGen::initialize(size_t rows, size_t columns) -> void {
     // Reset RNG
     rng_ = std::mt19937(std::random_device{}());
 
-    if (rows > 0 && columns > 0) {
+    if (rows > 0 && columns > 0) { // ? why is this needed when rows and columsn are of type unsigned long
         // Start position: top-left cell (0, 0)
         const size_t start_idx   = MazeSolver::get_1d_index(0, 0, cols_);
         grid_[start_idx].visited = true;
@@ -44,11 +44,11 @@ auto MazeGen::initialize(size_t rows, size_t columns) -> void {
 }
 
 auto MazeGen::step() -> bool {
-    if (done_ || !initialized_ || path_stack_.empty()) {
+    if (done_ || !initialized_ || path_stack_.empty()) { // ? why need path_stack_.empty() condition when done_ does the same thing
         if (!done_ && initialized_ && path_stack_.empty()) {
             // Just finished processing. Finalize entrance/exit.
             // Create entrance at (0,0) and exit at (rows-1, columns-1)
-            const size_t start_idx = MazeSolver::get_1d_index(0, 0, cols_);
+            const size_t start_idx = MazeSolver::get_1d_index(0, 0, cols_); // ? why not just assign 0
             const size_t end_idx =
                 MazeSolver::get_1d_index(rows_ - 1, cols_ - 1, cols_);
             grid_[start_idx].top  = false;
@@ -82,42 +82,50 @@ auto MazeGen::step() -> bool {
         remove_walls(row, col, nrow, ncol);
 
         // Mark the chosen neighbor as visited and push it onto the path
-        const size_t n_idx = MazeSolver::get_1d_index(
+        const size_t n_idx = MazeSolver::get_1d_index( // ? why does get_1d_index belong to MazeSolver class? It should either belong to MazeGen or some utility class
             static_cast<size_t>(nrow), static_cast<size_t>(ncol), cols_);
         grid_[n_idx].visited = true;
-        path_stack_.emplace_back(nrow, ncol);
+        path_stack_.emplace_back(nrow, ncol); //push on to the "stack"
     }
 
     // Check if finished after this step
     if (path_stack_.empty()) {
         // Finalize immediately or wait for next call?
-        const size_t start_idx = MazeSolver::get_1d_index(0, 0, cols_);
+        const size_t start_idx = MazeSolver::get_1d_index(0, 0, cols_); // ? why not just assign 0
         const size_t end_idx =
             MazeSolver::get_1d_index(rows_ - 1, cols_ - 1, cols_);
+        
+        // ? why
         grid_[start_idx].top  = false;
         grid_[end_idx].bottom = false;
+
         done_                 = true;
-        return false;  // Done
+        return false;  // Done (base condition of recursion)
     }
 
     return true;  // Still running
 }
 
 // cppcheck-suppress unusedFunction
-auto MazeGen::is_done() const -> bool { return done_; }
+auto MazeGen::is_done() const -> bool { return done_; } // ? is this ever used
 
 // Collect all unvisited neighbors
 auto MazeGen::get_neighbors(int row, int col) const
     -> std::vector<std::pair<int, int>> {
     std::vector<std::pair<int, int>> neighbors;
 
-    if (row > 0 &&
+
+    // ? Khalid's idea: Can this be implemented using switch
+
+    // Check if top neighbor is visited
+    if (row > 0 && // ? row is size_t, it can't be negative
         !grid_[MazeSolver::get_1d_index(static_cast<size_t>(row) - 1,
                                         static_cast<size_t>(col), cols_)]
              .visited) {
         neighbors.emplace_back(row - 1, col);
     }
 
+    // Check if bottom neighbor is visited
     if (row + 1 < static_cast<int>(rows_) &&
         !grid_[MazeSolver::get_1d_index(static_cast<size_t>(row) + 1,
                                         static_cast<size_t>(col), cols_)]
@@ -125,6 +133,7 @@ auto MazeGen::get_neighbors(int row, int col) const
         neighbors.emplace_back(row + 1, col);
     }
 
+    // Check if left neighbor is visited
     if (col > 0 &&
         !grid_[MazeSolver::get_1d_index(static_cast<size_t>(row),
                                         static_cast<size_t>(col) - 1, cols_)]
@@ -132,6 +141,7 @@ auto MazeGen::get_neighbors(int row, int col) const
         neighbors.emplace_back(row, col - 1);
     }
 
+    // Check if right neighbor is visited
     if (col + 1 < static_cast<int>(cols_) &&
         !grid_[MazeSolver::get_1d_index(static_cast<size_t>(row),
                                         static_cast<size_t>(col) + 1, cols_)]
@@ -141,6 +151,7 @@ auto MazeGen::get_neighbors(int row, int col) const
 
     return neighbors;
 }
+
 
 // Remove walls between two adjacent cells
 auto MazeGen::remove_walls(int row, int col, int nrow, int ncol) -> void {

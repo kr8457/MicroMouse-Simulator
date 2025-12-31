@@ -10,11 +10,13 @@
 #include "MazeGen.hpp"
 #include "MazeSolver.hpp"
 #include "UI.hpp"
+#include "solvers/SolverInterface.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 /**
  * @enum SolverType
@@ -86,13 +88,16 @@ class Simulator {
     std::vector<Cell>   maze_grid_;
     Graph               maze_graph_;
     std::vector<size_t> solved_path_;
+    std::vector<size_t> exploration_path_;
     bool                is_generating_ = false;
     bool                is_solving_    = false;
     bool                is_paused_     = true;
     size_t              anim_step_idx_ = 0;
-    double              last_solve_ms_ = 0.0;
+    // double last_solve_ms_ = 0.0; // Removed
     int                 anim_speed_    = K_DEFAULT_ANIM_SPEED;
     SolverType          solver_type_   = SolverType::BFS;
+    std::unique_ptr<SolverInterface> solver_instance_;
+    
     sf::Clock           anim_clock_;
     sf::Vector2f        mouse_pos_;
     UI                  ui_;
@@ -103,6 +108,7 @@ class Simulator {
     auto start_generation(bool step_by_step) -> void;
     auto reset_simulator() -> void;
     auto handle_instant_solve_click(const sf::Vector2f &mouse_pos) -> void;
+    auto step_solver_animation() -> void;
 };
 
 #endif  // MICRO_MOUSE_SIMULATOR_HPP

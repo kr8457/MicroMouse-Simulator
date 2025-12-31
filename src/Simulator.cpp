@@ -4,6 +4,11 @@
  */
 
 #include "Simulator.hpp"
+#include "solvers/BFSSolver.hpp"
+#include "solvers/DFSSolver.hpp"
+#include "solvers/AStarSolver.hpp"
+#include "solvers/FloodFillSolver.hpp"
+#include "solvers/WallFollowerSolver.hpp"
 #include <chrono>
 #include <iostream>
 
@@ -41,7 +46,7 @@ auto Simulator::handle_event(sf::RenderWindow &window, const sf::Event &event)
         anim_speed_,
         [this](bool step_by_step) { start_generation(step_by_step); },
         [this]() { run_solver(); },
-        []() { /* Single Step logic could be here */ },
+        [this]() { step_solver_animation(); },
         [this]() { reset_simulator(); });
 
     solver_type_ = static_cast<SolverType>(current_solver_idx);
@@ -50,6 +55,8 @@ auto Simulator::handle_event(sf::RenderWindow &window, const sf::Event &event)
     if (static_cast<int>(solver_type_) != prev_solver) {
         is_solving_ = false;
         solved_path_.clear();
+        exploration_path_.clear();
+        solver_instance_.reset();
     }
 
     // Handle Instant Solve (Skip Animation)
@@ -87,8 +94,14 @@ auto Simulator::update(float delta_time) -> void {
                 is_generating_ = false;
             }
         } else if (is_solving_) {
-            if (anim_step_idx_ < solved_path_.size()) {
-                anim_step_idx_++;
+            if (solver_instance_) {
+                bool running = solver_instance_->step();
+                exploration_path_ = solver_instance_->get_visited_order();
+                
+                if (!running) {
+                    is_solving_ = false;
+                    solved_path_ = solver_instance_->get_path();
+                }
             } else {
                 is_solving_ = false;
             }
@@ -102,9 +115,9 @@ auto Simulator::update(float delta_time) -> void {
 
 auto Simulator::render(sf::RenderWindow &window) -> void {
     ui_.draw(window, maze_rows_, maze_cols_, display_rows_, display_cols_,
-             maze_grid_, solved_path_, anim_step_idx_, is_generating_,
+             maze_grid_, exploration_path_, solved_path_, is_generating_,
              is_solving_, is_paused_, static_cast<int>(solver_type_),
-             last_solve_ms_, anim_speed_, maze_gen_, mouse_pos_);
+             anim_speed_, maze_gen_, mouse_pos_);
 }
 
 auto Simulator::update_mouse_position(sf::RenderWindow &window) -> void {
@@ -116,49 +129,50 @@ auto Simulator::update_mouse_position(sf::RenderWindow &window) -> void {
 // ==========================================================
 
 auto Simulator::run_solver() -> void {
+    if (is_generating_ || is_solving_) return;
+
     const size_t start_node = 0;
     const size_t end_node   = (maze_rows_ * maze_cols_) - 1;
 
-    const auto t_start = std::chrono::high_resolution_clock::now();
+    // Reset UI state
+    solved_path_.clear();
+    exploration_path_.clear();
+    anim_step_idx_ = 0;
 
-    // Execute the chosen algorithm
+    // Instantiate Solver
     switch (solver_type_) {
-    case SolverType::BFS:
-        solved_path_ = MazeSolver::bfs_solve(maze_graph_, start_node, end_node,
-                                             maze_rows_ * maze_cols_);
+    case SolverType::BFS: 
+        solver_instance_ = std::make_unique<BFSSolver>(); 
         break;
-    case SolverType::DFS:
-        solved_path_ = MazeSolver::dfs_solve(maze_graph_, start_node, end_node,
-                                             maze_rows_ * maze_cols_);
+    case SolverType::DFS: 
+        solver_instance_ = std::make_unique<DFSSolver>(); 
         break;
     case SolverType::ASTAR:
-        solved_path_ =
-            MazeSolver::astar_solve(maze_graph_, start_node, end_node,
-                                    maze_rows_ * maze_cols_, maze_cols_);
+        solver_instance_ = std::make_unique<AStarSolver>();
         break;
     case SolverType::FLOODFILL:
-        solved_path_ = MazeSolver::flood_fill_solve(
-            maze_grid_, maze_rows_, maze_cols_, start_node, end_node);
+        solver_instance_ = std::make_unique<FloodFillSolver>();
         break;
     case SolverType::WALL:
-        solved_path_ = MazeSolver::wall_follower_solve(
-            maze_grid_, maze_rows_, maze_cols_, start_node, end_node);
+        solver_instance_ = std::make_unique<WallFollowerSolver>();
         break;
     }
 
-    const auto t_end = std::chrono::high_resolution_clock::now();
-    last_solve_ms_ =
-        std::chrono::duration<double, std::milli>(t_end - t_start).count();
+    if (solver_instance_) {
+        solver_instance_->initialize(maze_grid_, maze_graph_, start_node, end_node,
+                                     maze_rows_, maze_cols_);
+    }
 
-    // Prepare for animation
+    is_solving_ = true;
+    is_paused_  = false;
     anim_step_idx_ = 0;
-    is_solving_    = true;
-    is_paused_     = false;
 }
 
 auto Simulator::start_generation(bool step_by_step) -> void {
     is_solving_ = false;
     solved_path_.clear();
+    exploration_path_.clear();
+    solver_instance_.reset();
     maze_gen_.initialize(maze_rows_, maze_cols_);
 
     // FIX: Update grid immediately after initialization so the first state is
@@ -187,16 +201,34 @@ auto Simulator::reset_simulator() -> void {
     is_solving_    = false;
     is_paused_     = true;
     solved_path_.clear();
-    last_solve_ms_ = 0.0;
+    exploration_path_.clear();
+    solver_instance_.reset();
+    
     start_generation(false);
 }
 
 auto Simulator::handle_instant_solve_click(const sf::Vector2f &mouse_pos)
     -> void {
     if (ui_.get_layout().solve_inst_btn.contains(mouse_pos)) {
-        if (!solved_path_.empty()) {
-            anim_step_idx_ = solved_path_.size();
-            is_paused_     = true;
+        if (solver_instance_ && is_solving_) {
+             solver_instance_->solve_instant();
+             exploration_path_ = solver_instance_->get_visited_order();
+             solved_path_ = solver_instance_->get_path();
+             is_solving_ = false;
+             is_paused_ = true;
         }
     }
+}
+
+auto Simulator::step_solver_animation() -> void {
+    if (!is_solving_ || !solver_instance_) return;
+
+    bool running = solver_instance_->step();
+    exploration_path_ = solver_instance_->get_visited_order();
+    
+    if (!running) {
+        is_solving_ = false;
+        solved_path_ = solver_instance_->get_path();
+    }
+    is_paused_ = true;
 }
