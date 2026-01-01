@@ -50,6 +50,18 @@ public:
      * @brief Check if the target has been reached.
      */
     virtual bool is_solved() const = 0;
+
+    /**
+     * @brief Get grid values for visualization (e.g. flood fill distances).
+     * @return Vector of integers mapping one-to-one with grid cells. Empty if not applicable.
+     */
+    virtual std::vector<int> get_grid_values() const { return {}; }
+
+    /**
+     * @brief Get the current heading of the solver agent.
+     * @return 0: Up, 1: Right, 2: Down, 3: Left, -1: Undefined/None.
+     */
+    virtual int get_current_heading() const { return -1; }
 };
 
 #endif // MICRO_MOUSE_SOLVER_INTERFACE_HPP

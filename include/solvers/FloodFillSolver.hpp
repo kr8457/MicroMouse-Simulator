@@ -19,6 +19,8 @@ public:
     std::vector<size_t> get_visited_order() const override;
     bool is_solved() const override;
 
+    std::vector<int> get_grid_values() const override { return distances_; }
+
 private:
     const std::vector<Cell>* grid_ = nullptr;
     const Graph* graph_ = nullptr;

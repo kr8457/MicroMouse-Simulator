@@ -77,11 +77,27 @@ bool WallFollowerSolver::step() {
     walls[2] = c.bottom;
     walls[3] = c.left;
 
+    // Helper to check if a direction is truly open (no wall AND in bounds)
+    auto is_open = [&](int dir) -> bool {
+        // 1. Check Maze Walls
+        if (walls[dir]) return false;
+
+        // 2. Check Map Boundaries explicitly
+        // If we are at the edge and facing out, it's blocked even if the cell says "no wall"
+        auto [r, c] = MazeSolver::get_2d_coords(current_node_, cols_);
+        if (dir == 0 && r == 0) return false;          // Up
+        if (dir == 1 && c == cols_ - 1) return false;  // Right
+        if (dir == 2 && r == rows_ - 1) return false;  // Down
+        if (dir == 3 && c == 0) return false;          // Left
+        
+        return true;
+    };
+
     // Left Hand Rule
     // 1. Check relative Left
     int left_dir = (facing_ + 3) % 4;
     
-    if (!walls[left_dir]) {
+    if (is_open(left_dir)) {
         // Prepare to move Left
         facing_ = left_dir;
         current_node_ = get_next(facing_);
@@ -91,7 +107,7 @@ bool WallFollowerSolver::step() {
     }
     
     // 2. Check Forward
-    if (!walls[facing_]) {
+    if (is_open(facing_)) {
         // Move Forward
         current_node_ = get_next(facing_);
         path_.push_back(current_node_);

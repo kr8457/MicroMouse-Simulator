@@ -26,6 +26,14 @@ auto main() -> int {
                             sf::Style::Default);
     window.setFramerateLimit(60);
 
+    // Load and set application icon
+    sf::Image icon;
+    if (icon.loadFromFile("assets/icon.png")) {
+        window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+    } else if (icon.loadFromFile("../assets/icon.png")) {
+        window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+    }
+
     try {
         Simulator simulator;
         if (!simulator.initialize()) {
