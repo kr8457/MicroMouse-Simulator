@@ -88,7 +88,11 @@ auto UI::handle_event(sf::RenderWindow &window, const sf::Event &event,
                       const std::function<void(bool)> &start_gen,
                       const std::function<void()>     &start_sol,
                       const std::function<void()>     &step_fn,
-                      const std::function<void()>     &reset_fn) -> void {
+                      const std::function<void()>     &reset_fn,
+                      const std::function<void(size_t, size_t, int)> &toggle_wall_fn,
+                      const std::function<void()>     &save_fn,
+                      const std::function<void()>     &load_fn,
+                      float &zoom_factor, sf::Vector2f &camera_offset) -> void {
 
     const sf::Vector2f MPOS =
         window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -99,6 +103,27 @@ auto UI::handle_event(sf::RenderWindow &window, const sf::Event &event,
     static constexpr int    K_SPEED_STEP     = 5;
     static constexpr int    K_MIN_ANIM_SPEED = 1;
     static constexpr int    K_MAX_ANIM_SPEED = 200;
+
+    static bool is_panning = false;
+    static sf::Vector2f last_mouse_pos;
+
+    // Handle Zoom
+    if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
+        float delta = event.mouseWheelScroll.delta;
+        zoom_factor = std::clamp(zoom_factor + delta * 0.1f, 0.5f, 5.0f);
+    }
+
+    // Handle Panning
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Middle) {
+        is_panning = true;
+        last_mouse_pos = MPOS;
+    } else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Middle) {
+        is_panning = false;
+    } else if (event.type == sf::Event::MouseMoved && is_panning) {
+        sf::Vector2f delta = MPOS - last_mouse_pos;
+        camera_offset += delta;
+        last_mouse_pos = MPOS;
+    }
 
     // Synchronize buffers if not focused (e.g. after reset or increment/decrement if we still had those)
     if (!row_focused_) row_input_buffer_ = std::to_string(display_rows);
@@ -162,6 +187,55 @@ auto UI::handle_event(sf::RenderWindow &window, const sf::Event &event,
         else if (L.play_btn.contains(MPOS)) is_paused = !is_paused;
         else if (L.step_btn.contains(MPOS)) { is_paused = true; step_fn(); }
         else if (L.reset_btn.contains(MPOS)) reset_fn();
+        else if (L.save_btn.contains(MPOS)) save_fn();
+        else if (L.load_btn.contains(MPOS)) load_fn();
+        else {
+            // Check if clicked in maze area
+            const float window_width = static_cast<float>(window.getSize().x);
+            const float window_height = static_cast<float>(window.getSize().y);
+            const float sidebar_width = std::clamp(window_width * 0.2f, 200.0f, 350.0f);
+            const float available_width = window_width - sidebar_width - 40.0f;
+            const float available_height = window_height - 40.0f;
+            
+            const float base_cell_size_w = available_width / static_cast<float>(maze_cols);
+            const float base_cell_size_h = available_height / static_cast<float>(maze_rows);
+            const float base_cell_size = std::min({base_cell_size_w, base_cell_size_h, 40.0f});
+            
+            const float cell_size = base_cell_size * zoom_factor;
+            const float MAZE_W = static_cast<float>(maze_cols) * cell_size;
+            const float MAZE_H = static_cast<float>(maze_rows) * cell_size;
+            const float OFFSET_X = sidebar_width + (window_width - sidebar_width - MAZE_W) / 2.0F + camera_offset.x;
+            const float OFFSET_Y = (window_height - MAZE_H) / 2.0F + camera_offset.y;
+
+            float rel_x = MPOS.x - OFFSET_X;
+            float rel_y = MPOS.y - OFFSET_Y;
+
+            if (rel_x >= 0 && rel_x < MAZE_W && rel_y >= 0 && rel_y < MAZE_H) {
+                size_t c = static_cast<size_t>(rel_x / cell_size);
+                size_t r = static_cast<size_t>(rel_y / cell_size);
+                
+                float cell_rel_x = fmod(rel_x, cell_size);
+                float cell_rel_y = fmod(rel_y, cell_size);
+
+                // Proximity threshold for clicking a wall (25% of cell size)
+                const float threshold = cell_size * 0.25f;
+
+                // Determine which wall is closest
+                float dist_top = cell_rel_y;
+                float dist_bottom = cell_size - cell_rel_y;
+                float dist_left = cell_rel_x;
+                float dist_right = cell_size - cell_rel_x;
+
+                float min_dist = std::min({dist_top, dist_bottom, dist_left, dist_right});
+                
+                if (min_dist < threshold) {
+                    if (min_dist == dist_top) toggle_wall_fn(r, c, 0);
+                    else if (min_dist == dist_right) toggle_wall_fn(r, c, 1);
+                    else if (min_dist == dist_bottom) toggle_wall_fn(r, c, 2);
+                    else if (min_dist == dist_left) toggle_wall_fn(r, c, 3);
+                }
+            }
+        }
     }
 
     // Handle character input
@@ -190,6 +264,7 @@ auto UI::draw(sf::RenderWindow &window, size_t maze_rows, size_t maze_cols,
               bool is_paused, int solver_type,
               int animation_speed, const MazeGen &maze_gen,
               const sf::Vector2f &mouse_pos,
+              float zoom_factor, const sf::Vector2f &camera_offset,
               const std::vector<int>& grid_values,
               int heading) -> void {
 
@@ -198,7 +273,8 @@ auto UI::draw(sf::RenderWindow &window, size_t maze_rows, size_t maze_cols,
                  solved_path.size(), animation_speed, mouse_pos);
 
     draw_maze(window, maze_rows, maze_cols, grid, exploration_path, 
-              solved_path, is_generating, maze_gen, grid_values, heading);
+              solved_path, is_generating, maze_gen, grid_values, heading,
+              zoom_factor, camera_offset);
 }
 
 /**
@@ -368,6 +444,17 @@ auto UI::draw_sidebar(sf::RenderWindow &window, size_t display_rows,
              sidebar_width - padding * 2.0f, false, mouse_pos);
     cy += btn_height_spacing;
 
+    // Section: File Operations
+    sf::Text file_title("FILE OPERATIONS", font_, section_size);
+    file_title.setFillColor(Theme::TextDim);
+    file_title.setPosition(cx, cy);
+    window.draw(file_title);
+    cy += section_size + padding * 0.5f;
+
+    draw_btn(window, "EXPORT MAZE", layout_.save_btn, cx, cy, algo_btn_width, false, mouse_pos);
+    draw_btn(window, "OPEN MAZE", layout_.load_btn, cx + algo_btn_width + btn_spacing, cy, algo_btn_width, false, mouse_pos);
+    cy += btn_height_spacing;
+
     // Section: Stats Card
     // Section: Stats Card
     if (exploration_count > 0 || solved_count > 0) {
@@ -401,7 +488,8 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
                    bool is_generating,
                    const MazeGen &maze_gen,
                    const std::vector<int>& grid_values,
-                   int heading) -> void {
+                   int heading,
+                   float zoom_factor, const sf::Vector2f &camera_offset) -> void {
     if (grid.empty()) return;
 
     // Calculate responsive dimensions
@@ -410,32 +498,53 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
     const float sidebar_width = std::clamp(window_width * 0.2f, 200.0f, 350.0f);
     const float available_width = window_width - sidebar_width - 40.0f;
     const float available_height = window_height - 40.0f;
-    const float cell_size_w = available_width / static_cast<float>(cols);
-    const float cell_size_h = available_height / static_cast<float>(rows);
-    const float cell_size = std::min({cell_size_w, cell_size_h, 40.0f});
+    
+    // Scale base cell size by zoom factor
+    const float base_cell_size_w = available_width / static_cast<float>(cols);
+    const float base_cell_size_h = available_height / static_cast<float>(rows);
+    const float base_cell_size = std::min({base_cell_size_w, base_cell_size_h, 40.0f});
+    
+    const float cell_size = base_cell_size * zoom_factor;
     const float wall_thickness = std::max(1.0f, cell_size * 0.08f);
     const float MAZE_W = static_cast<float>(cols) * cell_size;
     const float MAZE_H = static_cast<float>(rows) * cell_size;
-    const float OFFSET_X = sidebar_width + (window_width - sidebar_width - MAZE_W) / 2.0F;
-    const float OFFSET_Y = (window_height - MAZE_H) / 2.0F;
+    const float OFFSET_X = sidebar_width + (window_width - sidebar_width - MAZE_W) / 2.0F + camera_offset.x;
+    const float OFFSET_Y = (window_height - MAZE_H) / 2.0F + camera_offset.y;
 
-    // 1. Draw Grid Cells
-    sf::RectangleShape cs(sf::Vector2f(cell_size, cell_size));
-    for (size_t r_idx = 0; r_idx < rows; ++r_idx) {
-        for (size_t c_idx = 0; c_idx < cols; ++c_idx) {
-            const size_t idx = (r_idx * cols) + c_idx;
-            cs.setPosition(OFFSET_X + static_cast<float>(c_idx) * cell_size,
-                           OFFSET_Y + static_cast<float>(r_idx) * cell_size);
+    // --- Performance Optimization: Frustum Culling ---
+    // Calculate the range of cells currently visible in the window
+    int start_col = std::max(0, static_cast<int>((-OFFSET_X + sidebar_width) / cell_size));
+    int end_col   = std::min(static_cast<int>(cols) - 1, static_cast<int>((window_width - OFFSET_X) / cell_size));
+    int start_row = std::max(0, static_cast<int>(-OFFSET_Y / cell_size));
+    int end_row   = std::min(static_cast<int>(rows) - 1, static_cast<int>((window_height - OFFSET_Y) / cell_size));
+
+    // If no cells are visible, we can skip most of the drawing
+    if (start_col > end_col || start_row > end_row) return;
+
+    // 1. Draw Grid Cells using VertexArray for batching
+    sf::VertexArray cell_va(sf::Quads);
+    for (int r = start_row; r <= end_row; ++r) {
+        for (int c = start_col; c <= end_col; ++c) {
+            const size_t idx = (r * cols) + c;
+            float x = OFFSET_X + c * cell_size;
+            float y = OFFSET_Y + r * cell_size;
+            
+            sf::Color color;
             if (grid[idx].visited) {
-                cs.setFillColor(Theme::VisitedCell);
+                color = Theme::VisitedCell;
             } else {
-                cs.setFillColor(sf::Color(30, 41, 59, 40));
+                color = sf::Color(30, 41, 59, 40);
             }
-            if (idx == 0) cs.setFillColor(sf::Color(34, 197, 94));
-            else if (idx == (rows * cols - 1)) cs.setFillColor(Theme::Accent);
-            window.draw(cs);
+            if (idx == 0) color = sf::Color(34, 197, 94);
+            else if (idx == (rows * cols - 1)) color = Theme::Accent;
+
+            cell_va.append(sf::Vertex(sf::Vector2f(x, y), color));
+            cell_va.append(sf::Vertex(sf::Vector2f(x + cell_size, y), color));
+            cell_va.append(sf::Vertex(sf::Vector2f(x + cell_size, y + cell_size), color));
+            cell_va.append(sf::Vertex(sf::Vector2f(x, y + cell_size), color));
         }
     }
+    window.draw(cell_va);
 
     // 2. Draw Maze Generation Animation Path
     if (is_generating) {
@@ -514,8 +623,8 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
         txt.setOutlineThickness(2.0f); // Thick outline for contrast
         txt.setStyle(sf::Text::Bold);
 
-        for (size_t r = 0; r < rows; ++r) {
-            for (size_t c = 0; c < cols; ++c) {
+        for (int r = start_row; r <= end_row; ++r) {
+            for (int c = start_col; c <= end_col; ++c) {
                 int val = grid_values[r * cols + c];
                 // Only draw reachable/relevant values
                 if (val < static_cast<int>(rows * cols)) { 
@@ -537,8 +646,9 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
                     }
                     
                     // Cap the max scale so numbers don't look huge in large cells
-                    // But ensure they aren't macroscopic pixels 
                     scale = std::min(scale, 0.8f);
+                    // Also don't draw if tiny (sub-pixel)
+                    if (scale * base_size < 2.0f) continue;
 
                     txt.setScale(scale, scale);
 
@@ -579,16 +689,27 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
     wh.setFillColor(Theme::WallColor);
     wv.setFillColor(Theme::WallColor);
 
-    for (size_t r = 0; r < rows; ++r) {
-        for (size_t c = 0; c < cols; ++c) {
+    // 5. Draw Walls using VertexArray
+    sf::VertexArray wall_va(sf::Quads);
+    for (int r = start_row; r <= end_row; ++r) {
+        for (int c = start_col; c <= end_col; ++c) {
             const auto &cell = grid[r * cols + c];
             float px = OFFSET_X + c * cell_size, py = OFFSET_Y + r * cell_size;
-            if (cell.top) { wh.setPosition(px - wall_thickness/2.0f, py - wall_thickness/2.0f); window.draw(wh); }
-            if (cell.bottom) { wh.setPosition(px - wall_thickness/2.0f, py + cell_size - wall_thickness/2.0f); window.draw(wh); }
-            if (cell.left) { wv.setPosition(px - wall_thickness/2.0f, py - wall_thickness/2.0f); window.draw(wv); }
-            if (cell.right) { wv.setPosition(px + cell_size - wall_thickness/2.0f, py - wall_thickness/2.0f); window.draw(wv); }
+            
+            auto append_wall = [&](float x, float y, float w, float h) {
+                wall_va.append(sf::Vertex(sf::Vector2f(x, y), Theme::WallColor));
+                wall_va.append(sf::Vertex(sf::Vector2f(x + w, y), Theme::WallColor));
+                wall_va.append(sf::Vertex(sf::Vector2f(x + w, y + h), Theme::WallColor));
+                wall_va.append(sf::Vertex(sf::Vector2f(x, y + h), Theme::WallColor));
+            };
+
+            if (cell.top)    append_wall(px - wall_thickness/2.0f, py - wall_thickness/2.0f, cell_size + wall_thickness, wall_thickness);
+            if (cell.bottom) append_wall(px - wall_thickness/2.0f, py + cell_size - wall_thickness/2.0f, cell_size + wall_thickness, wall_thickness);
+            if (cell.left)   append_wall(px - wall_thickness/2.0f, py - wall_thickness/2.0f, wall_thickness, cell_size + wall_thickness);
+            if (cell.right)  append_wall(px + cell_size - wall_thickness/2.0f, py - wall_thickness/2.0f, wall_thickness, cell_size + wall_thickness);
         }
     }
+    window.draw(wall_va);
 }
 
 auto UI::draw_input_box(sf::RenderWindow &window, const std::string &label,

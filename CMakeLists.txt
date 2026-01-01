@@ -84,6 +84,9 @@ target_include_directories(mms-core
         ${CMAKE_SOURCE_DIR}/include 
 )
 target_link_libraries(mms-core PUBLIC sfml-graphics sfml-window sfml-system)
+if(WIN32)
+    target_link_libraries(mms-core PUBLIC comdlg32)
+endif()
 target_compile_definitions(mms-core PUBLIC SFML_STATIC)
 # The PUBLIC keyword ensures that any target that links to 'mms-core' (like 'mms' 
 # and 'mms-test') automatically inherits this include path.

@@ -103,12 +103,21 @@ class Simulator {
     UI                  ui_;
     float               time_accumulator_ = 0.0F;
 
+    // Zoom and Pan state
+    float               zoom_factor_   = 1.0f;
+    sf::Vector2f        camera_offset_ = {0.0f, 0.0f};
+    bool                is_panning_    = false;
+    sf::Vector2i        last_mouse_pos_;
+
     // Private methods
     auto run_solver() -> void;
     auto start_generation(bool step_by_step) -> void;
     auto reset_simulator() -> void;
     auto handle_instant_solve_click(const sf::Vector2f &mouse_pos) -> void;
     auto step_solver_animation() -> void;
+    auto toggle_wall(size_t row, size_t col, int wall_side) -> void;
+    auto save_maze() -> void;
+    auto load_maze() -> void;
 };
 
 #endif  // MICRO_MOUSE_SIMULATOR_HPP
