@@ -20,6 +20,8 @@ public:
     std::vector<size_t> get_visited_order() const override;
     bool is_solved() const override;
 
+    int get_current_heading() const override { return facing_; }
+
 private:
     const std::vector<Cell>* grid_ = nullptr;
     size_t start_node_ = 0;

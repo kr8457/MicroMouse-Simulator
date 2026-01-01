@@ -50,22 +50,30 @@ UI::UI() : row_input_buffer_("16"), col_input_buffer_("16"), speed_input_buffer_
  */
 auto UI::load_resources() -> bool {
     const std::vector<std::string> K_FONT_PATHS = {
-        "assets/fonts/arial.ttf",
-        "assets/fonts/consola.ttf",
-        "../assets/fonts/arial.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-        "C:/Windows/Fonts/consola.ttf",
-        "arial.ttf",
-        "consola.ttf"};
+        "assets/fonts/PixelOperatorMono-Bold.ttf",
+        "../assets/fonts/PixelOperatorMono-Bold.ttf",
+        "assets/fonts/Pixel-Regular.ttf",
+        "../assets/fonts/Pixel-Regular.ttf",
+        "assets/fonts/pixel.ttf",
+        "../assets/fonts/pixel.ttf",
+        "pixel.ttf",
+        // Fallback: OpenSans if available (found in project root)
+        "OpenSans-Regular.ttf",
+        "assets/fonts/OpenSans-Regular.ttf",
+        // System fallback (Monospace preferred for pixel-like aesthetic)
+        "C:/Windows/Fonts/lucon.ttf",
+        "C:/Windows/Fonts/cour.ttf"
+    };
 
     if (std::any_of(
             K_FONT_PATHS.begin(), K_FONT_PATHS.end(),
             [this](const auto &path) { return font_.loadFromFile(path); })) {
+        // Attempt to disable smoothing for the font texture (affects all sizes usually)
+        // Note: SFML generates textures on the fly, so this is best-effort.
         return true;
     }
 
-    // Last resort: Absolute path to Arial
-    return font_.loadFromFile(R"(C:\Windows\Fonts\arial.ttf)");
+    return false;
 }
 
 /**
@@ -181,14 +189,16 @@ auto UI::draw(sf::RenderWindow &window, size_t maze_rows, size_t maze_cols,
               bool is_generating, bool is_solving,
               bool is_paused, int solver_type,
               int animation_speed, const MazeGen &maze_gen,
-              const sf::Vector2f &mouse_pos) -> void {
+              const sf::Vector2f &mouse_pos,
+              const std::vector<int>& grid_values,
+              int heading) -> void {
 
     draw_sidebar(window, display_rows, display_cols, is_generating, is_solving,
                  is_paused, solver_type, exploration_path.size(), 
                  solved_path.size(), animation_speed, mouse_pos);
 
     draw_maze(window, maze_rows, maze_cols, grid, exploration_path, 
-              solved_path, is_generating, maze_gen);
+              solved_path, is_generating, maze_gen, grid_values, heading);
 }
 
 /**
@@ -389,7 +399,9 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
                    const std::vector<size_t> &exploration_path,
                    const std::vector<size_t> &solved_path,
                    bool is_generating,
-                   const MazeGen &maze_gen) -> void {
+                   const MazeGen &maze_gen,
+                   const std::vector<int>& grid_values,
+                   int heading) -> void {
     if (grid.empty()) return;
 
     // Calculate responsive dimensions
@@ -464,10 +476,81 @@ auto UI::draw_maze(sf::RenderWindow &window, size_t rows, size_t cols,
         // Highlight head
         size_t head_node = exploration_path.back();
         auto [hr, hc] = MazeSolver::get_2d_coords(head_node, cols);
-        sf::RectangleShape head(sf::Vector2f(cell_size, cell_size));
-        head.setPosition(OFFSET_X + hc * cell_size, OFFSET_Y + hr * cell_size);
-        head.setFillColor(sf::Color(255, 255, 255, 100));
-        window.draw(head);
+        float hx = OFFSET_X + hc * cell_size + cell_size / 2.0F;
+        float hy = OFFSET_Y + hr * cell_size + cell_size / 2.0F;
+
+        if (heading >= 0) {
+            // Draw a directional triangle
+            sf::ConvexShape triangle(3);
+            float r = cell_size * 0.4f;
+            triangle.setPoint(0, sf::Vector2f(0, -r));
+            triangle.setPoint(1, sf::Vector2f(r * 0.866f, r * 0.5f));
+            triangle.setPoint(2, sf::Vector2f(-r * 0.866f, r * 0.5f));
+            triangle.setFillColor(sf::Color::Yellow);
+            triangle.setPosition(hx, hy);
+            triangle.setRotation(static_cast<float>(heading * 90));
+            window.draw(triangle);
+        } else {
+            // Draw a rectangle
+            sf::RectangleShape head(sf::Vector2f(cell_size, cell_size));
+            head.setPosition(OFFSET_X + hc * cell_size, OFFSET_Y + hr * cell_size);
+            head.setFillColor(sf::Color(255, 255, 255, 100));
+            window.draw(head);
+        }
+    }
+
+    // New: Draw Grid Values (Flood Fill Distances)
+    if (!grid_values.empty() && grid_values.size() == rows * cols) {
+        // Use a larger base size for better quality when scaling down
+        unsigned int base_size = 32;
+        
+        // Disable smoothing for crisp pixel font rendering
+        // We need to const_cast because SFML's getTexture returns a const reference
+        const_cast<sf::Texture&>(font_.getTexture(base_size)).setSmooth(false);
+
+        sf::Text txt("", font_, base_size); 
+        txt.setFillColor(sf::Color::White); // White text
+        txt.setOutlineColor(sf::Color::Black); // Black outline
+        txt.setOutlineThickness(2.0f); // Thick outline for contrast
+        txt.setStyle(sf::Text::Bold);
+
+        for (size_t r = 0; r < rows; ++r) {
+            for (size_t c = 0; c < cols; ++c) {
+                int val = grid_values[r * cols + c];
+                // Only draw reachable/relevant values
+                if (val < static_cast<int>(rows * cols)) { 
+                    txt.setString(std::to_string(val));
+                    sf::FloatRect b = txt.getLocalBounds();
+                    
+                    // Reset scale
+                    txt.setScale(1.0f, 1.0f);
+                    
+                    // Calculate scale to fit within the cell
+                    float max_w = cell_size * 0.75f; // Slightly more padding
+                    float max_h = cell_size * 0.75f;
+                    float scale = 1.0f;
+                    
+                    if (b.width > 0 && b.height > 0) {
+                         float s_w = max_w / b.width;
+                         float s_h = max_h / b.height;
+                         scale = std::min(s_w, s_h);
+                    }
+                    
+                    // Cap the max scale so numbers don't look huge in large cells
+                    // But ensure they aren't macroscopic pixels 
+                    scale = std::min(scale, 0.8f);
+
+                    txt.setScale(scale, scale);
+
+                    // Re-center
+                    txt.setOrigin(b.left + b.width/2.0f, b.top + b.height/2.0f);
+                    txt.setPosition(OFFSET_X + c * cell_size + cell_size/2.0f,
+                                    OFFSET_Y + r * cell_size + cell_size/2.0f);
+                    
+                    window.draw(txt);
+                }
+            }
+        }
     }
 
     // 4. Overlay Solution Path as Ribbon

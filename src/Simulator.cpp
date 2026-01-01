@@ -98,6 +98,11 @@ auto Simulator::update(float delta_time) -> void {
                 bool running = solver_instance_->step();
                 exploration_path_ = solver_instance_->get_visited_order();
                 
+                // Update the "Ribbon" path live for Wall Follower so the user sees the trail
+                if (solver_type_ == SolverType::WALL) {
+                    solved_path_ = solver_instance_->get_path();
+                }
+                
                 if (!running) {
                     is_solving_ = false;
                     solved_path_ = solver_instance_->get_path();
@@ -114,10 +119,18 @@ auto Simulator::update(float delta_time) -> void {
 // ==========================================================
 
 auto Simulator::render(sf::RenderWindow &window) -> void {
+    std::vector<int> grid_values;
+    int heading = -1;
+
+    if (solver_instance_) {
+        grid_values = solver_instance_->get_grid_values();
+        heading = solver_instance_->get_current_heading();
+    }
+
     ui_.draw(window, maze_rows_, maze_cols_, display_rows_, display_cols_,
              maze_grid_, exploration_path_, solved_path_, is_generating_,
              is_solving_, is_paused_, static_cast<int>(solver_type_),
-             anim_speed_, maze_gen_, mouse_pos_);
+             anim_speed_, maze_gen_, mouse_pos_, grid_values, heading);
 }
 
 auto Simulator::update_mouse_position(sf::RenderWindow &window) -> void {
@@ -161,6 +174,9 @@ auto Simulator::run_solver() -> void {
     if (solver_instance_) {
         solver_instance_->initialize(maze_grid_, maze_graph_, start_node, end_node,
                                      maze_rows_, maze_cols_);
+        // FIX: Update exploration path immediately so the start node (and head) are visible
+        // even before the first simulation step occurs.
+        exploration_path_ = solver_instance_->get_visited_order();
     }
 
     is_solving_ = true;

@@ -88,7 +88,9 @@ class UI {
               bool is_generating, bool is_solving,
               bool is_paused, int solver_type,
               int animation_speed, const MazeGen &maze_gen,
-              const sf::Vector2f &mouse_pos) -> void;
+              const sf::Vector2f &mouse_pos,
+              const std::vector<int>& grid_values = {},
+              int heading = -1) -> void;
 
     /**
      * @brief Handles SFML events and dispatches them to simulation state
@@ -132,7 +134,9 @@ class UI {
                    const std::vector<size_t> &exploration_path,
                    const std::vector<size_t> &solved_path,
                    bool is_generating,
-                   const MazeGen &maze_gen) -> void;
+                   const MazeGen &maze_gen,
+                   const std::vector<int>& grid_values,
+                   int heading) -> void;
 
     /** @brief Internal helper to draw an interactive button. */
     auto draw_btn(sf::RenderWindow &window, const std::string &label,
