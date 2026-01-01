@@ -11,6 +11,11 @@
 #include "solvers/WallFollowerSolver.hpp"
 #include <chrono>
 #include <iostream>
+#include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+#endif
 
 // ==========================================================
 //                  CONSTRUCTOR & INITIALIZATION
@@ -47,7 +52,11 @@ auto Simulator::handle_event(sf::RenderWindow &window, const sf::Event &event)
         [this](bool step_by_step) { start_generation(step_by_step); },
         [this]() { run_solver(); },
         [this]() { step_solver_animation(); },
-        [this]() { reset_simulator(); });
+        [this]() { reset_simulator(); },
+        [this](size_t r, size_t c, int s) { toggle_wall(r, c, s); },
+        [this]() { save_maze(); },
+        [this]() { load_maze(); },
+        zoom_factor_, camera_offset_);
 
     solver_type_ = static_cast<SolverType>(current_solver_idx);
 
@@ -130,7 +139,8 @@ auto Simulator::render(sf::RenderWindow &window) -> void {
     ui_.draw(window, maze_rows_, maze_cols_, display_rows_, display_cols_,
              maze_grid_, exploration_path_, solved_path_, is_generating_,
              is_solving_, is_paused_, static_cast<int>(solver_type_),
-             anim_speed_, maze_gen_, mouse_pos_, grid_values, heading);
+             anim_speed_, maze_gen_, mouse_pos_, zoom_factor_, camera_offset_,
+             grid_values, heading);
 }
 
 auto Simulator::update_mouse_position(sf::RenderWindow &window) -> void {
@@ -216,6 +226,8 @@ auto Simulator::reset_simulator() -> void {
     is_generating_ = false;
     is_solving_    = false;
     is_paused_     = true;
+    zoom_factor_   = 1.0f;
+    camera_offset_ = {0.0f, 0.0f};
     solved_path_.clear();
     exploration_path_.clear();
     solver_instance_.reset();
@@ -247,4 +259,141 @@ auto Simulator::step_solver_animation() -> void {
         solved_path_ = solver_instance_->get_path();
     }
     is_paused_ = true;
+}
+
+auto Simulator::toggle_wall(size_t row, size_t col, int wall_side) -> void {
+    if (is_generating_ || is_solving_) return;
+    if (row >= maze_rows_ || col >= maze_cols_) return;
+
+    const size_t idx = row * maze_cols_ + col;
+    bool new_state = false;
+
+    // Toggle the selected wall and its neighbor
+    switch (wall_side) {
+    case 0: // Top
+        maze_grid_[idx].top = !maze_grid_[idx].top;
+        new_state = maze_grid_[idx].top;
+        if (row > 0) maze_grid_[(row - 1) * maze_cols_ + col].bottom = new_state;
+        break;
+    case 1: // Right
+        maze_grid_[idx].right = !maze_grid_[idx].right;
+        new_state = maze_grid_[idx].right;
+        if (col < maze_cols_ - 1) maze_grid_[idx + 1].left = new_state;
+        break;
+    case 2: // Bottom
+        maze_grid_[idx].bottom = !maze_grid_[idx].bottom;
+        new_state = maze_grid_[idx].bottom;
+        if (row < maze_rows_ - 1) maze_grid_[(row + 1) * maze_cols_ + col].top = new_state;
+        break;
+    case 3: // Left
+        maze_grid_[idx].left = !maze_grid_[idx].left;
+        new_state = maze_grid_[idx].left;
+        if (col > 0) maze_grid_[idx - 1].right = new_state;
+        break;
+    }
+
+    // Refresh the graph since walls changed
+    maze_graph_ = MazeSolver::convert_to_graph(maze_grid_, maze_rows_, maze_cols_);
+    
+    // Clear any previous paths
+    solved_path_.clear();
+    exploration_path_.clear();
+}
+
+auto Simulator::save_maze() -> void {
+#ifdef _WIN32
+    OPENFILENAME ofn;
+    char szFile[260] = {0};
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Maze Files\0*.maze\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileName(&ofn) == TRUE) {
+        std::string path = szFile;
+        // Append .maze if not present
+        if (path.find(".maze") == std::string::npos) {
+            path += ".maze";
+        }
+        
+        std::ofstream file(path);
+        if (file.is_open()) {
+            file << maze_rows_ << " " << maze_cols_ << "\n";
+            for (const auto& cell : maze_grid_) {
+                int mask = 0;
+                if (cell.top) mask |= 1;
+                if (cell.right) mask |= 2;
+                if (cell.bottom) mask |= 4;
+                if (cell.left) mask |= 8;
+                file << mask << " ";
+            }
+            std::cout << "Maze saved to: " << path << std::endl;
+        }
+    }
+#else
+    std::cerr << "Save dialog only supported on Windows." << std::endl;
+#endif
+}
+
+auto Simulator::load_maze() -> void {
+#ifdef _WIN32
+    OPENFILENAME ofn;
+    char szFile[260] = {0};
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Maze Files\0*.maze\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileName(&ofn) == TRUE) {
+        std::ifstream file(szFile);
+        if (file.is_open()) {
+            size_t r, c;
+            if (file >> r >> c) {
+                maze_rows_ = r;
+                maze_cols_ = c;
+                display_rows_ = r;
+                display_cols_ = c;
+                maze_grid_.clear();
+                maze_grid_.resize(r * c);
+                
+                for (size_t i = 0; i < r * c; ++i) {
+                    int mask;
+                    if (file >> mask) {
+                        maze_grid_[i].top = (mask & 1);
+                        maze_grid_[i].right = (mask & 2);
+                        maze_grid_[i].bottom = (mask & 4);
+                        maze_grid_[i].left = (mask & 8);
+                        maze_grid_[i].visited = false;
+                    }
+                }
+                
+                maze_graph_ = MazeSolver::convert_to_graph(maze_grid_, maze_rows_, maze_cols_);
+                is_solving_ = false;
+                solved_path_.clear();
+                exploration_path_.clear();
+                solver_instance_.reset();
+                
+                std::cout << "Maze loaded from: " << szFile << std::endl;
+            }
+        }
+    }
+#else
+    std::cerr << "Load dialog only supported on Windows." << std::endl;
+#endif
 }

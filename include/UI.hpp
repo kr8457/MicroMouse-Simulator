@@ -54,6 +54,8 @@ struct UILayout {
     sf::FloatRect solve_btn;       ///< Animate Solve button
     sf::FloatRect solve_inst_btn;  ///< Instant Solve button
     sf::FloatRect reset_btn;       ///< Reset Simulator button
+    sf::FloatRect save_btn;        ///< Save Maze button
+    sf::FloatRect load_btn;        ///< Load Maze button
 
     sf::FloatRect row_input_box; ///< Input box for Rows
     sf::FloatRect col_input_box; ///< Input box for Columns
@@ -89,6 +91,7 @@ class UI {
               bool is_paused, int solver_type,
               int animation_speed, const MazeGen &maze_gen,
               const sf::Vector2f &mouse_pos,
+              float zoom_factor, const sf::Vector2f &camera_offset,
               const std::vector<int>& grid_values = {},
               int heading = -1) -> void;
 
@@ -104,7 +107,11 @@ class UI {
                       const std::function<void(bool)> &start_gen,
                       const std::function<void()>     &start_sol,
                       const std::function<void()>     &step_fn,
-                      const std::function<void()>     &reset_fn) -> void;
+                      const std::function<void()>     &reset_fn,
+                      const std::function<void(size_t, size_t, int)> &toggle_wall_fn,
+                      const std::function<void()>     &save_fn,
+                      const std::function<void()>     &load_fn,
+                      float &zoom_factor, sf::Vector2f &camera_offset) -> void;
 
     /** @brief Gets the current UI layout bounding boxes. */
     auto get_layout() const -> const UILayout & { return layout_; }
@@ -136,7 +143,8 @@ class UI {
                    bool is_generating,
                    const MazeGen &maze_gen,
                    const std::vector<int>& grid_values,
-                   int heading) -> void;
+                   int heading,
+                   float zoom_factor, const sf::Vector2f &camera_offset) -> void;
 
     /** @brief Internal helper to draw an interactive button. */
     auto draw_btn(sf::RenderWindow &window, const std::string &label,
