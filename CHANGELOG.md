@@ -15,16 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Security
  -->
 
-## [unreleased]
+## 0.1.0 (2026-01-02)
 
-### Added
-- Added `.clang-tidy` that implements basic `Checks` like `cppcoreguidelines`, `modernize` and `readability` etc along with basic naming-conventions for Classes, Functions and Variables.
-- Added `CHANGELOG.md` to document all notable changes in a particular commit or release.
-- Added `.pre-commit-config.yaml` to automate formatting, linting, analysing, spell-correction, and other pesky tasks & checklist (install using `pre-commit install`).
+### Feat
 
-### Changed
-- Customized `.clang-format` for C++, away from pure LLVM coding-style. See [ClangFormatStyleOptions](https://clang.llvm.org/docs/ClangFormatStyleOptions.html) for more on what each does. tl;dr, it's just better? alignment and four-space tab. pro-tip: use empty line to separate two blocks of declarations.
+- add interactive maze editor, file explorer save/load, zoom/pan, and rendering optimizations
+- **everything**: bug fixes, refactoring and some new features
+- **everything**: bug fixes, refactoring and some new features
+- Implement SFML GUI and integrate maze solvers
+- **MazeGen.cpp**: Implement maze generation using backtracking
 
+### Fix
 
-<!-- Here comes the `git diff` of each version -->
-<!-- SEE https://github.com/nyx-4/MicroProjects/blob/main/CHANGELOG.md?plain=1 for @nyx-4's CHANGELOG -->
+- **Simulator.cpp**: file dialog not opening in windows
+- kfkfklkdfld
+- **linking**: CMake in tests/ tries to link to GTest::gtest_main before it has been properly configured
+
+### Refactor
+
+- polishing code
+- **.clang-fomat**: Condensing all LLVM style settings into a single line(BasedOnStyle)
