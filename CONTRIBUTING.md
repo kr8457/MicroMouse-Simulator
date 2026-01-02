@@ -1,10 +1,10 @@
-# 🤝 Contributing to MicroMouse Simulator
+# Contributing to MicroMouse Simulator
 
 Thank you for your interest in contributing to the MicroMouse Simulator project! This guide will help you get started with contributing code, reporting issues, and following our development practices.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
@@ -19,7 +19,7 @@ Thank you for your interest in contributing to the MicroMouse Simulator project!
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -30,9 +30,7 @@ Before contributing, ensure you have:
 - **C++ Compiler** (GCC, Clang, MSVC, or MinGW) which supports C++11 and above
 - **Clang-Format** (preferably from the LLVM toolchain)
 - **Clang-Tidy** (for static analysis)
-- **Python 3** (for pre-commit hooks and Sphinx)
-- **Doxygen** (XML generation backend for Sphinx)
-- **Sphinx** & **Breathe** (for generating the user guide)
+- **Python 3** (for pre-commit hooks)
 - **VSCode** (recommended IDE)
 
 ### Setting Up Your Development Environment
@@ -86,7 +84,7 @@ Before contributing, ensure you have:
 
 ---
 
-## 🔄 Development Workflow
+## Development Workflow
 
 ### Branching Model
 
@@ -167,19 +165,19 @@ git rebase dev
 
 ---
 
-## 💻 Coding Standards
+## Coding Standards
 
 ### Naming Conventions
 
 #### 1. File Names
 Use **PascalCase** for all source files:
 ```
-✅ Good:
+Correct:
 - MazeGen.cpp / MazeGen.hpp
 - PathFinder.cpp / PathFinder.hpp
 - RobotController.cpp / RobotController.hpp
 
-❌ Bad:
+Incorrect:
 - maze_gen.cpp
 - pathfinder.cpp
 - robot-controller.cpp
@@ -192,13 +190,13 @@ Use **PascalCase** for all source files:
 #### 2. Variable Names
 Use **snake_case** for variables. Names should be descriptive and self-explanatory:
 ```cpp
-✅ Good:
+Correct:
 int cell_count;
 double path_length;
 bool is_visited;
 std::vector<Position> current_path;
 
-❌ Bad:
+Incorrect:
 int cc;
 double pl;
 bool v;
@@ -208,12 +206,12 @@ std::vector<Position> cp;
 #### 3. Class Names
 Use **PascalCase** for class names:
 ```cpp
-✅ Good:
+Correct:
 class MazeGenerator;
 class PathFinder;
 class RobotController;
 
-❌ Bad:
+Incorrect:
 class maze_generator;
 class pathfinder;
 class robot_controller;
@@ -222,12 +220,12 @@ class robot_controller;
 #### 4. Function Names
 Use **snake_case** for function names:
 ```cpp
-✅ Good:
+Correct:
 void generate_maze();
 int calculate_distance();
 bool is_wall_present();
 
-❌ Bad:
+Incorrect:
 void generateMaze();
 int calculateDistance();
 bool isWallPresent();
@@ -236,11 +234,11 @@ bool isWallPresent();
 #### 5. Constants and Macros
 Use **UPPER_SNAKE_CASE** for all constants, including global constants, class constants, and local `static constexpr` values:
 ```cpp
-✅ Good:
+Correct:
 const int MAX_MAZE_SIZE = 16;
 static constexpr float K_SIDEBAR_WIDTH = 280.0F;
 
-❌ Bad:
+Incorrect:
 const int maxMazeSize = 16;
 ```
 
@@ -259,7 +257,7 @@ namespace {
 
 ---
 
-## 🛠️ Development Tools Setup
+## Development Tools Setup
 
 ### Clang-Format Configuration
 
@@ -348,7 +346,7 @@ clang-tidy src/filename.cpp -p build/
 
 ---
 
-## 🔨 Build System
+## Build System
 
 ### CMake Configuration
 
@@ -390,17 +388,14 @@ ctest --test-dir build --output-on-failure
 ```
 MicroMouse-Simulator/
 ├── CMakeLists.txt          # Main build configuration
-├── Doxyfile                # Doxygen configuration
 ├── include/                # Header files (.hpp)
 ├── src/                    # Source files (.cpp)
 ├── tests/                  # Test files
-├── sphinx_docs/            # Sphinx documentation source
-└── docs/                   # Generated documentation (XML/HTML)
 ```
 
 ---
 
-## 🔒 Pre-commit Hooks
+## Pre-commit Hooks
 
 The project uses pre-commit hooks to automatically check code quality before commits. Configuration is in `.pre-commit-config.yaml`.
 
@@ -479,7 +474,7 @@ git commit --no-verify -m "WIP: temporary commit"
 
 ---
 
-## 📝 Commitizen Configuration
+## Commitizen Configuration
 
 The project uses Commitizen (configured in `cz.yaml`) to enforce consistent commit message formatting.
 
@@ -539,12 +534,12 @@ When using `git commit` directly (not recommended, but validated by pre-commit),
 
 **Examples:**
 ```bash
-✅ Good:
+Correct:
 git commit -m "feat(pathfinding): add Dijkstra algorithm implementation"
 git commit -m "fix(maze): resolve wall generation bug in corner cases"
 git commit -m "docs(readme): update build instructions for Windows"
 
-❌ Bad:
+Incorrect:
 git commit -m "fixed stuff"
 git commit -m "updates"
 git commit -m "WIP"
@@ -552,7 +547,7 @@ git commit -m "WIP"
 
 ---
 
-## 🧪 Testing Guidelines
+## Testing Guidelines
 
 ### Prerequisites
 
@@ -597,12 +592,13 @@ TEST(MazeGenTest, BasicGeneration) {
 }
 ```
 
-## 📚 Documentation Workflow
+## Documentation Workflow
 
-We use a combination of **Doxygen** and **Sphinx** (via **Breathe**) to maintain documentation.
+All public classes, methods, and structures must be documented using Doxygen-style comments. 
 
-### 1. In-Code Documentation
-All public classes, methods, and structures must be documented using Doxygen-style comments:
+**Rule: Document in Headers ONLY**
+To avoid redundancy and maintain a single source of truth, all Doxygen comments must reside in the header files (`.hpp`). Do not add Doxygen comments to implementation files (`.cpp`) for functions already documented in the header.
+
 ```cpp
 /**
  * @brief Brief description.
@@ -611,23 +607,9 @@ All public classes, methods, and structures must be documented using Doxygen-sty
  */
 ```
 
-### 2. Building Documentation Locally
-Before submitting a PR, ensure your changes don't break the documentation build:
-
-```bash
-# Build Sphinx site (automatically handles Doxygen backend)
-cd sphinx_docs
-pip install sphinx breathe sphinx-rtd-theme
-doxygen Doxyfile
-make html
-```
-
-### 3. Reviewing Documentation
-Open `sphinx_docs/_build/html/index.html` in your browser to verify the rendering.
-
 ---
 
-## 📤 Submitting Changes
+## Submitting Changes
 
 ### Pull Request Checklist
 
@@ -660,7 +642,7 @@ Closes #123
 
 ---
 
-## 🐛 Reporting Issues
+## Reporting Issues
 
 ### Before Opening an Issue
 
@@ -710,7 +692,7 @@ For feature requests, include:
 
 ---
 
-## 🎯 Good First Issues
+## Good First Issues
 
 Looking for a place to start? Check out issues labeled:
 
@@ -720,7 +702,7 @@ Looking for a place to start? Check out issues labeled:
 
 ---
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Git Workflow Guide](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 - [Conventional Commits](https://www.conventionalcommits.org/)
@@ -731,7 +713,7 @@ Looking for a place to start? Check out issues labeled:
 
 ---
 
-## 💬 Questions?
+## Questions?
 
 If you have questions about contributing:
 
