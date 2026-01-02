@@ -1,14 +1,14 @@
-#include <MazeGen.hpp>
+#include <generators/RecursiveBacktracker.hpp>
 #include <gtest/gtest.h>
 
-TEST(MazeGenTest, Instantiation) {
-    MazeGen gen;
+TEST(RecursiveBacktrackerTest, Instantiation) {
+    RecursiveBacktracker gen;
     // Verify object creation
     SUCCEED();
 }
 
-TEST(MazeGenTest, InitializationShowsFirstGrid) {
-    MazeGen gen;
+TEST(RecursiveBacktrackerTest, InitializationShowsFirstGrid) {
+    RecursiveBacktracker gen;
     gen.initialize(5, 5);
 
     // After initialization, grid should be available
@@ -24,8 +24,8 @@ TEST(MazeGenTest, InitializationShowsFirstGrid) {
     }
 }
 
-TEST(MazeGenTest, StepByStepGeneration) {
-    MazeGen gen;
+TEST(RecursiveBacktrackerTest, StepByStepGeneration) {
+    RecursiveBacktracker gen;
     gen.initialize(3, 3);
 
     // Grid should be available immediately after init

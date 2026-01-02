@@ -62,15 +62,17 @@ endif()
 
 # Define the source files that contain the reusable application logic.
 set(CORE_SOURCES 
-    src/MazeGen.cpp 
-    src/MazeSolver.cpp 
-    src/UI.cpp 
-    src/Simulator.cpp
-    src/solvers/BFSSolver.cpp
-    src/solvers/DFSSolver.cpp
-    src/solvers/AStarSolver.cpp
-    src/solvers/FloodFillSolver.cpp
-    src/solvers/WallFollowerSolver.cpp
+    src/model/generators/RecursiveBacktracker.cpp 
+    src/model/generators/EllersGenerator.cpp
+    src/model/MazeUtils.cpp
+    src/view/UI.cpp 
+    src/view/UIComponents.cpp
+    src/controller/Simulator.cpp
+    src/model/solvers/BFSSolver.cpp
+    src/model/solvers/DFSSolver.cpp
+    src/model/solvers/AStarSolver.cpp
+    src/model/solvers/FloodFillSolver.cpp
+    src/model/solvers/WallFollowerSolver.cpp
 )
 
 # Create a Static Library target. This bundles the core logic into a reusable 
@@ -82,6 +84,9 @@ add_library(mms-core STATIC ${CORE_SOURCES})
 target_include_directories(mms-core
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include 
+        ${CMAKE_SOURCE_DIR}/include/model
+        ${CMAKE_SOURCE_DIR}/include/view
+        ${CMAKE_SOURCE_DIR}/include/controller
 )
 target_link_libraries(mms-core PUBLIC sfml-graphics sfml-window sfml-system)
 if(WIN32)
