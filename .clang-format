@@ -1,0 +1,60 @@
+---
+BasedOnStyle: LLVM
+ColumnLimit:  80
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments:
+  Enabled:          true
+  AcrossEmptyLines: false
+  AcrossComments:   false
+  AlignCompound:    true
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:     true
+AlignConsecutiveBitFields:
+  Enabled:          true
+  AcrossEmptyLines: false
+  AcrossComments:   false
+  AlignCompound:    false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:     false
+AlignConsecutiveDeclarations:
+  Enabled:          true
+  AcrossEmptyLines: false
+  AcrossComments:   false
+  AlignCompound:    false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:     false
+AlignConsecutiveMacros:
+  Enabled:          true
+  AcrossEmptyLines: false
+  AcrossComments:   false
+  AlignCompound:    false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:     false
+AlignConsecutiveShortCaseStatements:
+  Enabled:          false
+  AcrossEmptyLines: false
+  AcrossComments:   false
+  AlignCaseArrows:  false
+  AlignCaseColons:  false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseExpressionOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortCompoundRequirementOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
+BreakBinaryOperations: RespectPrecedence
+BreakTemplateDeclarations: Yes
+IndentWidth:        4
+RemoveEmptyLinesInUnwrappedLines: true
+SpaceInEmptyBlock:  true
+SpacesBeforeTrailingComments: 2
+TabWidth:           4
+...
