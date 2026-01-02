@@ -12,9 +12,10 @@
 #include "solvers/FloodFillSolver.hpp"
 #include "solvers/WallFollowerSolver.hpp"
 #include <iostream>
+#include <fstream>
 #ifdef _WIN32
-#include <commdlg.h>
 #include <windows.h>
+#include <commdlg.h>
 #endif
 
 // ==========================================================
