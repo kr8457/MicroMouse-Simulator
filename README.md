@@ -16,6 +16,10 @@ A sophisticated micromouse maze simulator featuring pathfinding algorithms and i
 
 ---
 
+## Demo
+
+[Demo Gid]("./assets/demo.gif")
+
 ## Features
 
 ### Maze Generators
